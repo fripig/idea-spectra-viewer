@@ -1,53 +1,55 @@
 # Spectra Viewer
 
-在 JetBrains IDE 裡瀏覽 [Spectra](https://github.com/spectra-app/spectra) 的 changes，不用切到終端機。
+*English · [繁體中文](README.zh-TW.md)*
 
-Spectra 會把 park 起來的 change 從 `openspec/changes/` 移到 git 目錄底下，專案樹因此完全看不到它們。這個 plugin 提供一個 **Spectra** tool window，把 Active、Parked、Archived 三類 change 並列顯示，標示各自的任務進度，並可直接在編輯器開啟它們的 Markdown 文件。
+Browse your [Spectra](https://github.com/spectra-app/spectra) changes right inside your JetBrains IDE — no app switching.
 
-Plugin 直接讀檔案，**不需開啟 Spectra app**，也不會去碰 Spectra 的內部資料庫。
+Spectra moves parked changes out of `openspec/changes/` into the git directory, which makes them invisible in the project tree. This plugin adds a **Spectra** tool window that lists Active, Parked, and Archived changes side by side, shows the task progress of each, and opens their Markdown documents directly in the editor.
 
-> **非官方專案**：這是由社群開發的第三方 plugin，與 Spectra 官方沒有隸屬關係，也未經其背書。Spectra 相關名稱屬於各自的擁有者。
+The plugin reads files directly. It **does not require the Spectra app to be running**, and it never touches Spectra's internal database.
 
-## 功能
+> **Unofficial project**: This is a community-built third-party plugin. It is not affiliated with, nor endorsed by, Spectra. All Spectra-related names belong to their respective owners.
 
-- **三組並列**：Active（`openspec/changes/`）、Parked（git 目錄下的 `spectra-app/changes/`）、Archived（`openspec/changes/archive/`）。group 節點會顯示 change 數量；篩選時同時顯示符合數與總數。
-- **任務進度**：解析 change 的 `tasks.md`，在節點上顯示「完成／總數」。程式碼區塊內的 checkbox 會被忽略。
-- **開啟文件**：雙擊 artifact 節點即在編輯器開啟該 Markdown。檔案已被刪除時只跳非阻斷式通知，不會噴錯。
-- **排序**：可依 Name、Modified、Created 排序，預設 Modified（最新在前）。日期未知者一律排最後。
-- **名稱篩選**：輸入文字即時過濾 change 名稱（不分大小寫），三組同時套用；符合的 change 其 artifact 全部保留。
-- **Refresh**：工具列的重新掃描會保留展開狀態與篩選文字。
-- **Git worktree 支援**：`.git` 是檔案時會依 `gitdir:` 與 `commondir` 解析出真正的 git 目錄，再從中尋找 parked changes。
+## Features
 
-排序與篩選都只重建樹，不會重新掃描檔案系統；掃描本身一律在背景執行緒進行，不阻塞 EDT。
+- **Three groups side by side**: Active (`openspec/changes/`), Parked (`spectra-app/changes/` under the git directory), and Archived (`openspec/changes/archive/`). Group nodes show the change count; while filtering, they show both the matching count and the total.
+- **Task progress**: Parses each change's `tasks.md` and shows "completed／total" on the node. Checkboxes inside code blocks are ignored.
+- **Open documents**: Double-click an artifact node to open its Markdown in the editor. If the file has been deleted, you get a non-blocking notification instead of an error.
+- **Sorting**: Sort by Name, Modified, or Created — Modified (newest first) is the default. Entries with an unknown date always sort last.
+- **Name filter**: Type to filter change names in real time (case-insensitive), applied to all three groups at once. All artifacts of a matching change are kept.
+- **Refresh**: Re-scanning from the toolbar preserves the expanded state and the filter text.
+- **Git worktree support**: When `.git` is a file, the real git directory is resolved via `gitdir:` and `commondir`, and parked changes are located from there.
 
-## 安裝
+Sorting and filtering only rebuild the tree — they never re-scan the file system. Scanning itself always runs on a background thread and never blocks the EDT.
 
-從 [Releases](https://github.com/fripig/idea-spectra-viewer/releases) 下載 `.zip`，在 IDE 中選 **Settings → Plugins → ⚙ → Install Plugin from Disk...** 安裝後重啟。
+## Installation
 
-需求：JetBrains IDE 2026.2（build 262）以上。Plugin 只依賴 `com.intellij.modules.platform`，因此 PhpStorm、IntelliJ IDEA 等所有 JetBrains IDE 都能安裝。
+Download the `.zip` from [Releases](https://github.com/fripig/idea-spectra-viewer/releases), then in your IDE choose **Settings → Plugins → ⚙ → Install Plugin from Disk...** and restart.
 
-## 開發
+Requirements: JetBrains IDE 2026.2 (build 262) or later. The plugin only depends on `com.intellij.modules.platform`, so it installs on any JetBrains IDE — PhpStorm, IntelliJ IDEA, and the rest.
+
+## Development
 
 ```bash
-./gradlew build          # 編譯並執行單元測試
-./gradlew buildPlugin    # 產出 build/distributions/*.zip
-./gradlew runIde         # 在沙箱 IDE 中試跑
+./gradlew build          # compile and run unit tests
+./gradlew buildPlugin    # produce build/distributions/*.zip
+./gradlew runIde         # try it out in a sandbox IDE
 ```
 
-編譯目標為 JVM 21，但因為要對著 IntelliJ Platform 2026.2 的產物編譯，建置本身需要較新的 JDK（CI 使用 JDK 25）。
+The compilation target is JVM 21, but since the build compiles against IntelliJ Platform 2026.2 artifacts, it requires a newer JDK to run (CI uses JDK 25).
 
-發版流程：推送 `release-<version>` tag，GitHub Actions 會由 tag 推導 `PLUGIN_VERSION`、建置、測試並發布 Release。
+Release process: push a `release-<version>` tag, and GitHub Actions derives `PLUGIN_VERSION` from the tag, builds, tests, and publishes the Release.
 
-## 專案結構
+## Project structure
 
 ```
 src/main/kotlin/com/github/fripig/spectraviewer/
-├── discovery/   # 掃描檔案系統、解析 tasks.md 與 .openspec.yaml
-├── model/       # SpectraChange、排序規則
-└── toolwindow/  # tool window UI 與樹狀節點
-openspec/specs/  # Spectra 規格（本專案自身以 SDD 開發）
+├── discovery/   # file system scanning, parsing tasks.md and .openspec.yaml
+├── model/       # SpectraChange, sorting rules
+└── toolwindow/  # tool window UI and tree nodes
+openspec/specs/  # Spectra specs (this project is itself developed with SDD)
 ```
 
-## 授權
+## License
 
 [MIT](LICENSE) © fripig
