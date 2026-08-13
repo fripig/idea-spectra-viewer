@@ -1,0 +1,25 @@
+# 換行正規化：repo 內一律存 LF，Windows 專用的批次檔除外
+* text=auto eol=lf
+
+*.bat       text eol=crlf
+gradlew     text eol=lf
+*.jar       binary
+
+# 語言統計與 diff：Gradle wrapper 是上游產物，文件與 agent skill 不是專案原始碼
+gradle/wrapper/** linguist-vendored
+gradlew           linguist-vendored
+gradlew.bat       linguist-vendored
+openspec/**       linguist-documentation
+.claude/**        linguist-documentation
+.agents/**        linguist-documentation
+*.md              linguist-documentation
+
+# git archive（GitHub Release 的 Source code 壓縮檔）不需要帶上開發用設定
+.gitattributes    export-ignore
+.gitignore        export-ignore
+.github/          export-ignore
+.claude/          export-ignore
+.agents/          export-ignore
+.spectra.yaml     export-ignore
+CLAUDE.md         export-ignore
+AGENTS.md         export-ignore
