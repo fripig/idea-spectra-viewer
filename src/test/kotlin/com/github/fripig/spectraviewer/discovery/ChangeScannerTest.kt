@@ -16,8 +16,11 @@ import org.junit.jupiter.api.io.TempDir
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.attribute.FileTime
 import java.nio.file.attribute.PosixFileAttributeView
 import java.nio.file.attribute.PosixFilePermissions
+import java.time.Instant
+import java.time.LocalDate
 
 class ChangeScannerTest {
 
@@ -85,14 +88,15 @@ class ChangeScannerTest {
     }
 
     @Test
-    fun `active changes are sorted by name`(@TempDir root: Path) {
+    fun `every discovered change is present regardless of order`(@TempDir root: Path) {
         createChange(root.resolve("openspec/changes/zebra-fix"))
         createChange(root.resolve("openspec/changes/add-search"))
         createChange(root.resolve("openspec/changes/mid-tier"))
 
         val snapshot = scan(root)
 
-        assertEquals(listOf("add-search", "mid-tier", "zebra-fix"), names(snapshot.active))
+        // Ordering is the presentation layer's decision, so the scan only promises membership.
+        assertEquals(setOf("add-search", "mid-tier", "zebra-fix"), names(snapshot.active).toSet())
     }
 
     @Test
@@ -203,6 +207,85 @@ class ChangeScannerTest {
         assertEquals(root.resolve("openspec/changes/add-search").toRealPath(), reported.directory.toRealPath())
     }
 
+    // ---- Requirement: Report per-change metadata (creation date) ----
+
+    @Test
+    fun `the creation date is read from the change metadata file`(@TempDir root: Path) {
+        val change = root.resolve("openspec/changes/add-search")
+        Files.createDirectories(change)
+        Files.writeString(change.resolve(".openspec.yaml"), "schema: spec-driven\ncreated: 2026-08-10\n")
+
+        assertEquals(LocalDate.of(2026, 8, 10), scan(root).active.single().created)
+    }
+
+    @Test
+    fun `unusable creation metadata leaves the change listed with an unknown date`(@TempDir root: Path) {
+        val cases = mapOf(
+            "no-created" to "schema: spec-driven\n",
+            "not-a-date" to "created: last Tuesday\n",
+            "empty-value" to "created:\n",
+        )
+        cases.forEach { (name, yaml) ->
+            val dir = root.resolve("openspec/changes/$name")
+            Files.createDirectories(dir)
+            Files.writeString(dir.resolve(".openspec.yaml"), yaml)
+        }
+        val absent = root.resolve("openspec/changes/no-file")
+        Files.createDirectories(absent)
+
+        val active = scan(root).active.associateBy { it.name }
+
+        assertEquals(
+            setOf("no-created", "not-a-date", "empty-value", "no-file"),
+            active.keys,
+            "unusable metadata must never remove a change",
+        )
+        active.values.forEach { assertNull(it.created, "${it.name} should have an unknown creation date") }
+    }
+
+    // ---- Requirement: Report per-change metadata (modification date) ----
+
+    @Test
+    fun `the newest Markdown file supplies the modification date`(@TempDir root: Path) {
+        val change = root.resolve("openspec/changes/theme-work")
+        Files.createDirectories(change)
+        val older = Instant.parse("2026-08-11T17:00:00Z")
+        val newer = Instant.parse("2026-08-12T09:00:00Z")
+        writeAt(change.resolve("proposal.md"), "# Proposal\n", older)
+        writeAt(change.resolve("tasks.md"), "- [ ] 1.1 Something\n", newer)
+
+        assertEquals(newer, scan(root).active.single().modified)
+    }
+
+    @Test
+    fun `editing an artifact moves the modification date forward`(@TempDir root: Path) {
+        val change = root.resolve("openspec/changes/theme-work")
+        Files.createDirectories(change)
+        writeAt(change.resolve("proposal.md"), "# Proposal\n", Instant.parse("2026-08-11T17:00:00Z"))
+        val before = scan(root).active.single().modified
+
+        // Only the file's content changes; the parent directory is untouched, which is exactly the
+        // case a directory timestamp would miss.
+        writeAt(change.resolve("proposal.md"), "# Proposal, revised\n", Instant.parse("2026-08-14T08:00:00Z"))
+        val after = scan(root).active.single().modified
+
+        assertNotNull(before)
+        assertNotNull(after)
+        assertTrue(after!! > before!!, "editing a Markdown file must move the modification date forward")
+        assertEquals(Instant.parse("2026-08-14T08:00:00Z"), after)
+    }
+
+    @Test
+    fun `a change with no Markdown files has no modification date`(@TempDir root: Path) {
+        val change = root.resolve("openspec/changes/empty-change")
+        Files.createDirectories(change)
+        Files.writeString(change.resolve(".openspec.yaml"), "schema: spec-driven\n")
+
+        val reported = scan(root).active.single()
+        assertEquals("empty-change", reported.name)
+        assertNull(reported.modified)
+    }
+
     @Test
     fun `a change without openspec yaml is still reported`(@TempDir root: Path) {
         val change = root.resolve("openspec/changes/add-search")
@@ -260,7 +343,7 @@ class ChangeScannerTest {
             val warnings = mutableListOf<String>()
             val snapshot = ChangeScanner.scan(root) { message, _ -> warnings += message }
 
-            assertEquals(listOf("alpha", "gamma"), names(snapshot.active), "readable changes survive")
+            assertEquals(setOf("alpha", "gamma"), names(snapshot.active).toSet(), "readable changes survive")
             assertTrue(
                 warnings.any { it.contains("broken") },
                 "the warning must name the skipped change, got: $warnings",
@@ -315,6 +398,12 @@ class ChangeScannerTest {
         false
     } catch (_: IOException) {
         true
+    }
+
+    /** Writes a file and pins its modification time, so date assertions do not depend on the clock. */
+    private fun writeAt(file: Path, content: String, at: Instant) {
+        Files.writeString(file, content)
+        Files.setLastModifiedTime(file, FileTime.from(at))
     }
 
     private fun createChange(dir: Path, tasks: String? = "- [ ] 1.1 Something\n") {

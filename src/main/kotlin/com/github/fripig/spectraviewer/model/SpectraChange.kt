@@ -1,6 +1,8 @@
 package com.github.fripig.spectraviewer.model
 
 import java.nio.file.Path
+import java.time.Instant
+import java.time.LocalDate
 
 /**
  * Where a change lives. Spectra keeps active and archived changes under `openspec/`, but moves
@@ -27,6 +29,11 @@ data class TaskProgress(val complete: Int, val total: Int)
  * One discovered change. [artifacts] holds every Markdown file below [directory], expressed as a
  * path relative to it and sorted as strings; [progress] is null when `tasks.md` is absent or holds
  * no countable checkbox.
+ *
+ * [created] and [modified] deliberately use different types: the creation date comes from
+ * `.openspec.yaml` and has day precision, the modification time comes from the file system. Two
+ * same-typed nullable date fields side by side would be silently swappable at every call site.
+ * Neither has a default value, so a new construction site cannot quietly report both as unknown.
  */
 data class SpectraChange(
     val name: String,
@@ -34,6 +41,8 @@ data class SpectraChange(
     val directory: Path,
     val artifacts: List<String>,
     val progress: TaskProgress?,
+    val created: LocalDate?,
+    val modified: Instant?,
 ) {
     val status: ChangeStatus
         get() {

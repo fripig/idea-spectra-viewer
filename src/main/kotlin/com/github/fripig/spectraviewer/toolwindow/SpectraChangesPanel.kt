@@ -2,6 +2,7 @@ package com.github.fripig.spectraviewer.toolwindow
 
 import com.github.fripig.spectraviewer.discovery.ChangeScanner
 import com.github.fripig.spectraviewer.model.ChangeGroup
+import com.github.fripig.spectraviewer.model.ChangeOrder
 import com.github.fripig.spectraviewer.model.SpectraSnapshot
 import com.intellij.icons.AllIcons
 import com.intellij.notification.NotificationGroupManager
@@ -12,6 +13,7 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.ToggleAction
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.diagnostic.Logger
@@ -20,17 +22,21 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.DoubleClickListener
+import com.intellij.ui.SearchTextField
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.treeStructure.Tree
+import java.awt.BorderLayout
 import java.awt.GridBagLayout
 import java.awt.event.MouseEvent
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
 import javax.swing.JComponent
+import javax.swing.event.DocumentEvent
 import javax.swing.SwingConstants
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
@@ -45,6 +51,14 @@ class SpectraChangesPanel(private val project: Project) : SimpleToolWindowPanel(
     private var currentView: JComponent? = null
     private var scanning = false
     private var loadedOnce = false
+
+    /**
+     * The last snapshot is kept so that changing the order or the filter can rebuild the tree from
+     * memory. Rescanning the disk to reorder rows would be pure latency.
+     */
+    private var lastSnapshot: SpectraSnapshot? = null
+    private var order = ChangeOrder.DEFAULT
+    private var filter = ""
 
     /**
      * Only the newest scan may touch the tree: a slow scan that lost a race with a later Refresh
@@ -109,14 +123,22 @@ class SpectraChangesPanel(private val project: Project) : SimpleToolWindowPanel(
             is ScanOutcome.Success -> outcome.snapshot
         }
 
+        lastSnapshot = snapshot
+        rebuildTree()
+
+        if (snapshot.isSpectraProject) showView(treeView) else showMessage(EMPTY_STATE_TEXT)
+    }
+
+    /** Re-renders the current snapshot under the current order and filter. Touches no disk. */
+    private fun rebuildTree() {
+        val snapshot = lastSnapshot ?: return
+
         // The very first snapshot has no expansion state to preserve, so open Active for the user.
         val toExpand = if (loadedOnce) collectExpandedIds(tree) else setOf(ChangeGroup.ACTIVE.name)
         loadedOnce = true
 
-        tree.model = buildTreeModel(snapshot)
+        tree.model = buildTreeModel(applyView(snapshot, order, filter), filter.isNotEmpty())
         restoreExpandedIds(tree, toExpand)
-
-        if (snapshot.isSpectraProject) showView(treeView) else showMessage(EMPTY_STATE_TEXT)
     }
 
     private fun projectRoot(): Path? {
@@ -179,10 +201,33 @@ class SpectraChangesPanel(private val project: Project) : SimpleToolWindowPanel(
     }
 
     private fun createToolbar(): JComponent {
-        val actions = DefaultActionGroup(RefreshAction())
+        val sortGroup = DefaultActionGroup("Sort By", true).apply {
+            templatePresentation.icon = AllIcons.ObjectBrowser.Sorted
+            ChangeOrder.entries.forEach { add(SortAction(it)) }
+        }
+        val actions = DefaultActionGroup(RefreshAction(), sortGroup)
         val toolbar = ActionManager.getInstance().createActionToolbar(TOOLBAR_PLACE, actions, true)
         toolbar.targetComponent = this
-        return toolbar.component
+
+        val bar = JBPanel<JBPanel<*>>(BorderLayout())
+        bar.add(toolbar.component, BorderLayout.WEST)
+        bar.add(createFilterField(), BorderLayout.CENTER)
+        return bar
+    }
+
+    /** Typing re-renders from the snapshot in memory; the disk is not touched. */
+    private fun createFilterField(): JComponent {
+        val field = SearchTextField(false)
+        field.textEditor.emptyText.setText(FILTER_HINT_TEXT)
+        field.addDocumentListener(object : DocumentAdapter() {
+            override fun textChanged(e: DocumentEvent) {
+                val text = field.text
+                if (text == filter) return
+                filter = text
+                rebuildTree()
+            }
+        })
+        return field
     }
 
     private fun createMessageView(label: JBLabel): JComponent {
@@ -195,6 +240,21 @@ class SpectraChangesPanel(private val project: Project) : SimpleToolWindowPanel(
 
     override fun dispose() {
         disposed = true
+    }
+
+    /** Radio-style: the three orders are mutually exclusive and the active one carries the check. */
+    private inner class SortAction(private val target: ChangeOrder) :
+        ToggleAction(target.displayName), DumbAware {
+
+        override fun isSelected(e: AnActionEvent): Boolean = order == target
+
+        override fun setSelected(e: AnActionEvent, state: Boolean) {
+            if (!state || order == target) return
+            order = target
+            rebuildTree()
+        }
+
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
     }
 
     private inner class RefreshAction : AnAction("Refresh", "Rescan Spectra changes", AllIcons.Actions.Refresh), DumbAware {
@@ -225,5 +285,6 @@ class SpectraChangesPanel(private val project: Project) : SimpleToolWindowPanel(
         const val EMPTY_STATE_TEXT = "This project is not initialised for Spectra."
         const val SCAN_FAILED_TEXT = "Scanning Spectra changes failed — see the IDE log for details."
         const val NO_PROJECT_DIR_TEXT = "Spectra could not determine this project's directory."
+        const val FILTER_HINT_TEXT = "Filter by name"
     }
 }

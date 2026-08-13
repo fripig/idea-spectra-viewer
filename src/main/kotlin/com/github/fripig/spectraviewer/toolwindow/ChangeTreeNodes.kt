@@ -1,6 +1,7 @@
 package com.github.fripig.spectraviewer.toolwindow
 
 import com.github.fripig.spectraviewer.model.ChangeGroup
+import com.github.fripig.spectraviewer.model.ChangeOrder
 import com.github.fripig.spectraviewer.model.SpectraChange
 import com.github.fripig.spectraviewer.model.SpectraSnapshot
 import com.intellij.icons.AllIcons
@@ -13,6 +14,55 @@ import javax.swing.tree.DefaultTreeModel
 import javax.swing.tree.TreePath
 
 /**
+ * One group as the tree should show it. [changes] is what survived the filter, already ordered;
+ * [total] is how many the group holds before filtering, so the row can say "1 of 3" rather than
+ * leaving the user to wonder whether the missing ones were filtered or never scanned.
+ */
+data class GroupView(val group: ChangeGroup, val changes: List<SpectraChange>, val total: Int)
+
+/**
+ * Turns a snapshot into what the tree shows. Pure — no file system access — so it is safe on the
+ * EDT and a change of order or filter costs a rebuild rather than a rescan.
+ *
+ * An empty [filter] means "no filter": everything is shown. Treating it as a substring that nothing
+ * contains would empty the tree the moment the user cleared the search box.
+ */
+fun applyView(snapshot: SpectraSnapshot, order: ChangeOrder, filter: String): List<GroupView> =
+    ChangeGroup.entries.map { group ->
+        val all = snapshot[group]
+        GroupView(
+            group = group,
+            changes = sortChanges(filterChanges(all, filter), order),
+            total = all.size,
+        )
+    }
+
+/** Matches on the change name only; artifact paths never make their change match. */
+fun filterChanges(changes: List<SpectraChange>, filter: String): List<SpectraChange> =
+    if (filter.isEmpty()) changes else changes.filter { it.name.contains(filter, ignoreCase = true) }
+
+/**
+ * Orders changes for display. The scan leaves them unordered, so ordering costs no disk access and
+ * the user can switch it without a rescan.
+ *
+ * A change whose date is unknown always sorts last, never first: treating unknown as the smallest
+ * value would float an undated change to the top of a "most recent first" list, which reads as a
+ * claim about its age rather than an absence of information.
+ */
+fun sortChanges(changes: List<SpectraChange>, order: ChangeOrder): List<SpectraChange> = when (order) {
+    ChangeOrder.NAME -> changes.sortedBy { it.name }
+    // Day-precision creation dates tie constantly, and file times can tie too, so both date orders
+    // need the name as a tiebreak to stay stable between rebuilds.
+    ChangeOrder.MODIFIED -> changes.sortedWith(mostRecentFirst(SpectraChange::modified))
+    ChangeOrder.CREATED -> changes.sortedWith(mostRecentFirst(SpectraChange::created))
+}
+
+private fun <T : Comparable<T>> mostRecentFirst(date: (SpectraChange) -> T?): Comparator<SpectraChange> =
+    compareBy<SpectraChange> { date(it) == null }
+        .thenByDescending(nullsLast()) { date(it) }
+        .thenBy { it.name }
+
+/**
  * User object of every tree row. [id] is stable across rebuilds, which is what lets Refresh restore
  * the expansion state even though each snapshot replaces the whole model.
  */
@@ -20,9 +70,20 @@ sealed interface SpectraNode {
     val id: String
 }
 
-data class GroupNode(val group: ChangeGroup, val count: Int) : SpectraNode {
-    override val id: String get() = group.name
+/**
+ * Holds the [GroupView] rather than loose matched and total counts: two adjacent Int parameters
+ * would compile just as happily swapped.
+ */
+data class GroupNode(val view: GroupView, val filtering: Boolean) : SpectraNode {
+    override val id: String get() = view.group.name
 }
+
+/**
+ * The count shown next to a group name: a single total normally, matched-of-total while filtering.
+ * Without the total, a group dropping from 20 to 0 reads as lost data rather than a narrow search.
+ */
+fun groupCountText(node: GroupNode): String =
+    if (node.filtering) "${node.view.changes.size}/${node.view.total}" else "${node.view.total}"
 
 data class ChangeNode(val change: SpectraChange) : SpectraNode {
     override val id: String get() = "${change.group.name}/${change.name}"
@@ -38,11 +99,11 @@ data class ArtifactNode(val change: SpectraChange, val relativePath: String) : S
  * Builds the whole tree from one snapshot. The three group nodes are always present, including the
  * empty ones, so the user can tell "no parked changes" apart from "parked changes not scanned".
  */
-fun buildTreeModel(snapshot: SpectraSnapshot): DefaultTreeModel {
+fun buildTreeModel(views: List<GroupView>, filtering: Boolean): DefaultTreeModel {
     val root = DefaultMutableTreeNode()
-    for (group in ChangeGroup.entries) {
-        val changes = snapshot[group]
-        val groupNode = DefaultMutableTreeNode(GroupNode(group, changes.size))
+    for (view in views) {
+        val changes = view.changes
+        val groupNode = DefaultMutableTreeNode(GroupNode(view, filtering))
         for (change in changes) {
             val changeNode = DefaultMutableTreeNode(ChangeNode(change))
             for (artifact in change.artifacts) {
@@ -101,8 +162,8 @@ class SpectraTreeCellRenderer : ColoredTreeCellRenderer() {
         when (val node = (value as? DefaultMutableTreeNode)?.userObject) {
             is GroupNode -> {
                 icon = AllIcons.Nodes.Folder
-                append(node.group.displayName)
-                append("  ${node.count}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+                append(node.view.group.displayName)
+                append("  ${groupCountText(node)}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
             }
 
             is ChangeNode -> {

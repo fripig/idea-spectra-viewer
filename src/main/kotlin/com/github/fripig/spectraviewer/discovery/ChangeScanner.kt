@@ -13,7 +13,8 @@ import kotlin.io.path.name
  * not be on the PATH an IDE inherits) and the VFS is not used, because parked changes live inside
  * the git directory, which is excluded from the project index.
  *
- * The caller is responsible for running this off the EDT.
+ * The caller is responsible for running this off the EDT. Changes come back in no defined order;
+ * ordering belongs to the presentation layer, which can reorder without a rescan.
  */
 object ChangeScanner {
 
@@ -25,6 +26,7 @@ object ChangeScanner {
     private const val ARCHIVE_DIR = "archive"
     private const val PARKED_ROOT_DIR = "spectra-app"
     private const val TASKS_FILE = "tasks.md"
+    private const val METADATA_FILE = ".openspec.yaml"
 
     fun scan(
         projectRoot: Path,
@@ -70,25 +72,40 @@ object ChangeScanner {
                     null
                 }
             }
-            .sortedBy { it.name }
     }
 
     private fun readChange(changeDir: Path, group: ChangeGroup): SpectraChange {
-        val artifacts = Files.walk(changeDir).use { stream ->
+        val markdownFiles = Files.walk(changeDir).use { stream ->
             stream
                 .filter { Files.isRegularFile(it) && it.name.endsWith(".md", ignoreCase = true) }
-                .map { relativeSlashPath(changeDir, it) }
                 .toList()
-        }.sorted()
+        }
+        val artifacts = markdownFiles.map { relativeSlashPath(changeDir, it) }.sorted()
 
-        // `.openspec.yaml` is intentionally not read: nothing in the tree needs it, and parsing it
-        // would create a way for a malformed metadata file to hide an otherwise usable change.
+        // The change directory's own timestamp is not used: it moves only when entries are added or
+        // removed, so editing an artifact's content would leave it untouched and the ordering stale.
+        // A file whose time cannot be read drops out of the comparison rather than failing the scan.
+        val modified = markdownFiles
+            .mapNotNull { file ->
+                try {
+                    Files.getLastModifiedTime(file).toInstant()
+                } catch (_: Exception) {
+                    null
+                }
+            }
+            .maxOrNull()
+
+        // `.openspec.yaml` is read only for its `created` field, and only through a parser that
+        // resolves every failure to null. A malformed metadata file therefore costs the creation
+        // date and nothing else — it can never hide an otherwise usable change.
         return SpectraChange(
             name = changeDir.name,
             group = group,
             directory = changeDir.toAbsolutePath(),
             artifacts = artifacts,
             progress = TaskProgressParser.parseFile(changeDir.resolve(TASKS_FILE)),
+            created = ChangeMetadataParser.parseCreatedFile(changeDir.resolve(METADATA_FILE)),
+            modified = modified,
         )
     }
 
