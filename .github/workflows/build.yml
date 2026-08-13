@@ -1,0 +1,78 @@
+name: Build
+
+on:
+  push:
+    tags: ['release-*']
+  workflow_dispatch:
+
+# Needed to create the GitHub Release at the end of a tag build.
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build and release
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # release-0.2.0 -> PLUGIN_VERSION=0.2.0, which build.gradle.kts prefers over
+      # gradle.properties. A manual workflow_dispatch run sets nothing and keeps the
+      # committed version. Rejecting a malformed tag here beats publishing a release
+      # whose plugin version is a typo.
+      - name: Derive plugin version from tag
+        if: github.ref_type == 'tag'
+        run: |
+          version="${GITHUB_REF_NAME#release-}"
+          if ! [[ "$version" =~ ^[0-9]+(\.[0-9]+)*([-.][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Tag '$GITHUB_REF_NAME' does not yield a usable version (got '$version')."
+            exit 1
+          fi
+          echo "PLUGIN_VERSION=$version" >> "$GITHUB_ENV"
+          echo "Building version $version"
+
+      # JDK 25 rather than the jvmTarget 21: the IntelliJ Platform 2026.2 artifacts this
+      # compiles against require a JDK at least as new as the runtime the IDE itself needs.
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          validate-wrappers: true
+
+      # `build` compiles both source sets and runs the unit tests, `verifyPluginProjectConfiguration`
+      # checks plugin.xml and the platform setup, and `buildPlugin` produces the installable zip —
+      # `build` alone does not, so the upload step below would find nothing without it.
+      - name: Build, test and package
+        run: ./gradlew build verifyPluginProjectConfiguration buildPlugin
+
+      - name: Upload plugin distribution
+        uses: actions/upload-artifact@v7
+        with:
+          name: idea-spectra-viewer
+          path: build/distributions/*.zip
+          if-no-files-found: error
+
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-report
+          path: |
+            build/reports/tests/test
+            build/test-results/test
+          if-no-files-found: ignore
+
+      # gh is preinstalled on GitHub runners, so this needs no third-party action.
+      # Only tag builds publish; a manual run stops after the artifact upload.
+      - name: Create GitHub Release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" build/distributions/*.zip \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes

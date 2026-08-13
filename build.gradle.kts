@@ -5,8 +5,13 @@ plugins {
     id("org.jetbrains.intellij.platform") version "2.18.1"
 }
 
+// CI derives PLUGIN_VERSION from the release-* tag it was triggered by, so the tag and the built
+// artifact can never disagree. Local builds see no such variable and fall back to gradle.properties.
+val pluginVersion = providers.environmentVariable("PLUGIN_VERSION")
+    .orElse(providers.gradleProperty("pluginVersion"))
+
 group = providers.gradleProperty("pluginGroup").get()
-version = providers.gradleProperty("pluginVersion").get()
+version = pluginVersion.get()
 
 repositories {
     mavenCentral()
@@ -35,7 +40,7 @@ dependencies {
 intellijPlatform {
     pluginConfiguration {
         name = providers.gradleProperty("pluginName")
-        version = providers.gradleProperty("pluginVersion")
+        version = pluginVersion
 
         ideaVersion {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
