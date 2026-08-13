@@ -1,0 +1,24 @@
+# Spectra local state (parked changes live in .git/spectra-app, not here)
+.spectra/
+openspec/.vector-search.db*
+
+# Gradle
+.gradle/
+build/
+local.properties
+# The wrapper jar must stay committed — it is how a fresh checkout bootstraps Gradle.
+!gradle/wrapper/gradle-wrapper.jar
+
+# Kotlin compiler session data
+.kotlin/
+
+# IntelliJ Platform plugin sandbox
+.intellijPlatform/
+
+# IDE
+.idea/
+*.iml
+out/
+
+# macOS
+.DS_Store

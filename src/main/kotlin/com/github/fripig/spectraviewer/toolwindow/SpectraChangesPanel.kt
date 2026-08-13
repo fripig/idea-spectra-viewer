@@ -1,0 +1,229 @@
+package com.github.fripig.spectraviewer.toolwindow
+
+import com.github.fripig.spectraviewer.discovery.ChangeScanner
+import com.github.fripig.spectraviewer.model.ChangeGroup
+import com.github.fripig.spectraviewer.model.SpectraSnapshot
+import com.intellij.icons.AllIcons
+import com.intellij.notification.NotificationGroupManager
+import com.intellij.notification.NotificationType
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.project.DumbAware
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.SimpleToolWindowPanel
+import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.ui.DoubleClickListener
+import com.intellij.ui.JBColor
+import com.intellij.ui.components.JBLabel
+import com.intellij.ui.components.JBPanel
+import com.intellij.ui.components.JBScrollPane
+import com.intellij.ui.treeStructure.Tree
+import java.awt.GridBagLayout
+import java.awt.event.MouseEvent
+import java.nio.file.InvalidPathException
+import java.nio.file.Path
+import javax.swing.JComponent
+import javax.swing.SwingConstants
+import javax.swing.tree.DefaultMutableTreeNode
+import javax.swing.tree.DefaultTreeModel
+
+class SpectraChangesPanel(private val project: Project) : SimpleToolWindowPanel(true, true), Disposable {
+
+    private val tree = Tree(DefaultTreeModel(DefaultMutableTreeNode()))
+    private val treeView = JBScrollPane(tree)
+    private val messageLabel = JBLabel()
+    private val messageView = createMessageView(messageLabel)
+
+    private var currentView: JComponent? = null
+    private var scanning = false
+    private var loadedOnce = false
+
+    /**
+     * Only the newest scan may touch the tree: a slow scan that lost a race with a later Refresh
+     * would otherwise resurrect stale data.
+     */
+    private var latestRequest = 0
+    private var disposed = false
+
+    init {
+        tree.isRootVisible = false
+        tree.showsRootHandles = true
+        tree.cellRenderer = SpectraTreeCellRenderer()
+        tree.emptyText.setText(LOADING_TEXT)
+
+        object : DoubleClickListener() {
+            override fun onDoubleClick(event: MouseEvent): Boolean = openArtifactAt(event)
+        }.installOn(tree)
+
+        setToolbar(createToolbar())
+        showView(treeView)
+        refresh()
+    }
+
+    fun refresh() {
+        if (disposed || project.isDisposed) return
+
+        val request = ++latestRequest
+        scanning = true
+        showView(treeView)
+        tree.setPaintBusy(true)
+        tree.emptyText.setText(LOADING_TEXT)
+
+        val projectRoot = projectRoot()
+        if (projectRoot == null) {
+            applyOutcome(ScanOutcome.Failure(NO_PROJECT_DIR_TEXT), request)
+            return
+        }
+
+        ApplicationManager.getApplication().executeOnPooledThread {
+            val outcome = try {
+                ScanOutcome.Success(ChangeScanner.scan(projectRoot))
+            } catch (e: Exception) {
+                LOG.warn("Spectra scan of $projectRoot failed", e)
+                ScanOutcome.Failure(SCAN_FAILED_TEXT)
+            }
+            ApplicationManager.getApplication().invokeLater(
+                { applyOutcome(outcome, request) },
+                ModalityState.nonModal(),
+            )
+        }
+    }
+
+    private fun applyOutcome(outcome: ScanOutcome, request: Int) {
+        if (disposed || project.isDisposed || request != latestRequest) return
+
+        scanning = false
+        tree.setPaintBusy(false)
+
+        // A failed scan must not masquerade as "no Spectra here" — that would hide the problem.
+        val snapshot = when (outcome) {
+            is ScanOutcome.Failure -> return showMessage(outcome.message)
+            is ScanOutcome.Success -> outcome.snapshot
+        }
+
+        // The very first snapshot has no expansion state to preserve, so open Active for the user.
+        val toExpand = if (loadedOnce) collectExpandedIds(tree) else setOf(ChangeGroup.ACTIVE.name)
+        loadedOnce = true
+
+        tree.model = buildTreeModel(snapshot)
+        restoreExpandedIds(tree, toExpand)
+
+        if (snapshot.isSpectraProject) showView(treeView) else showMessage(EMPTY_STATE_TEXT)
+    }
+
+    private fun projectRoot(): Path? {
+        val basePath = project.basePath ?: return null
+        return try {
+            Path.of(basePath)
+        } catch (e: InvalidPathException) {
+            LOG.warn("Project base path is not a valid file system path: $basePath", e)
+            null
+        }
+    }
+
+    private fun openArtifactAt(event: MouseEvent): Boolean {
+        val path = tree.getPathForLocation(event.x, event.y) ?: return false
+        val node = (path.lastPathComponent as? DefaultMutableTreeNode)?.userObject as? ArtifactNode ?: return false
+        openArtifact(node.file)
+        return true
+    }
+
+    /** The VFS lookup refreshes from disk, so it stays off the EDT like the scan itself. */
+    private fun openArtifact(file: Path) {
+        ApplicationManager.getApplication().executeOnPooledThread {
+            val virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(file)
+            ApplicationManager.getApplication().invokeLater(
+                {
+                    if (disposed || project.isDisposed) return@invokeLater
+                    if (virtualFile == null || !virtualFile.isValid) {
+                        notifyMissing(file)
+                    } else {
+                        FileEditorManager.getInstance(project).openFile(virtualFile, true)
+                    }
+                },
+                ModalityState.nonModal(),
+            )
+        }
+    }
+
+    private fun notifyMissing(file: Path) {
+        NotificationGroupManager.getInstance()
+            .getNotificationGroup(NOTIFICATION_GROUP_ID)
+            .createNotification(
+                "File is no longer available",
+                "$file no longer exists. Refresh the Spectra tool window.",
+                NotificationType.WARNING,
+            )
+            .notify(project)
+    }
+
+    private fun showMessage(text: String) {
+        messageLabel.text = text
+        showView(messageView)
+    }
+
+    private fun showView(view: JComponent) {
+        if (currentView === view) return
+        currentView = view
+        setContent(view)
+        revalidate()
+        repaint()
+    }
+
+    private fun createToolbar(): JComponent {
+        val actions = DefaultActionGroup(RefreshAction())
+        val toolbar = ActionManager.getInstance().createActionToolbar(TOOLBAR_PLACE, actions, true)
+        toolbar.targetComponent = this
+        return toolbar.component
+    }
+
+    private fun createMessageView(label: JBLabel): JComponent {
+        label.horizontalAlignment = SwingConstants.CENTER
+        label.foreground = JBColor.GRAY
+        val panel = JBPanel<JBPanel<*>>(GridBagLayout())
+        panel.add(label)
+        return panel
+    }
+
+    override fun dispose() {
+        disposed = true
+    }
+
+    private inner class RefreshAction : AnAction("Refresh", "Rescan Spectra changes", AllIcons.Actions.Refresh), DumbAware {
+        override fun actionPerformed(e: AnActionEvent) = refresh()
+
+        override fun update(e: AnActionEvent) {
+            e.presentation.isEnabled = !scanning
+        }
+
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+    }
+
+    private sealed interface ScanOutcome {
+        @JvmInline
+        value class Success(val snapshot: SpectraSnapshot) : ScanOutcome
+
+        @JvmInline
+        value class Failure(val message: String) : ScanOutcome
+    }
+
+    private companion object {
+        val LOG = Logger.getInstance(SpectraChangesPanel::class.java)
+        const val TOOLBAR_PLACE = "SpectraChangesToolWindow"
+        const val NOTIFICATION_GROUP_ID = "Spectra Viewer"
+        // The tree always carries three group rows, so Tree.emptyText only ever shows before the
+        // first snapshot lands — which is exactly the loading moment.
+        const val LOADING_TEXT = "Loading Spectra changes…"
+        const val EMPTY_STATE_TEXT = "This project is not initialised for Spectra."
+        const val SCAN_FAILED_TEXT = "Scanning Spectra changes failed — see the IDE log for details."
+        const val NO_PROJECT_DIR_TEXT = "Spectra could not determine this project's directory."
+    }
+}

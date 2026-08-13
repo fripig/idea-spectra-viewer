@@ -1,0 +1,31 @@
+<idea-plugin>
+    <id>com.github.fripig.spectraviewer</id>
+    <name>Spectra Viewer</name>
+    <vendor email="fripig@gmail.com">fripig</vendor>
+
+    <description><![CDATA[
+        Browse <a href="https://github.com/spectra-app/spectra">Spectra</a> changes without leaving the IDE.
+        <br/>
+        Spectra moves parked changes out of <code>openspec/changes/</code> and into the git directory, where the
+        project tree never shows them. This plugin adds a <b>Spectra</b> tool window that lists active, parked and
+        archived changes side by side, shows task progress for each one, and opens their Markdown artifacts in the
+        editor. It reads the files directly, so the <code>spectra</code> CLI does not need to be installed.
+    ]]></description>
+
+    <!--
+      Only the platform module is required: the tool window reads files and renders a tree, with no
+      PHP-specific API. That keeps the plugin installable in PhpStorm and every other JetBrains IDE.
+    -->
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow
+            id="Spectra"
+            anchor="right"
+            icon="AllIcons.Toolwindows.ToolWindowStructure"
+            factoryClass="com.github.fripig.spectraviewer.toolwindow.SpectraToolWindowFactory"/>
+        <notificationGroup
+            id="Spectra Viewer"
+            displayType="BALLOON"/>
+    </extensions>
+</idea-plugin>
