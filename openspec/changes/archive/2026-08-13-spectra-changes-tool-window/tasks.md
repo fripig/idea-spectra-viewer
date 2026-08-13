@@ -23,4 +23,4 @@
 
 ## 4. 端對端驗證
 
-- [ ] 4.1 依設計的「驗收條件」與「範圍邊界」完成端對端驗證，確認交付內容不逸出範圍：以 Gradle 建置產出可安裝的 plugin 壓縮檔，於沙箱 IDE 開啟本 repository，確認 Spectra Tool Window 列出的 parked change 名稱與終端機 spectra list --parked 的輸出一致，並將一個 change park 後按 Refresh 確認它由 Active 移至 Parked。驗證：上述四項人工檢查全部通過，且以 Gradle wrapper 執行 test 任務全數通過
+- [x] 4.1 依設計的「驗收條件」與「範圍邊界」完成端對端驗證，確認交付內容不逸出範圍：以 Gradle 建置產出可安裝的 plugin 壓縮檔，於沙箱 IDE 開啟本 repository，確認 Spectra Tool Window 列出的 parked change 名稱與終端機 spectra list --parked 的輸出一致，並將一個 change park 後按 Refresh 確認它由 Active 移至 Parked。驗證：上述四項人工檢查全部通過，且以 Gradle wrapper 執行 test 任務全數通過
