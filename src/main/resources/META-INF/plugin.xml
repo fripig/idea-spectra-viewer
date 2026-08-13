@@ -9,7 +9,10 @@
         Spectra moves parked changes out of <code>openspec/changes/</code> and into the git directory, where the
         project tree never shows them. This plugin adds a <b>Spectra</b> tool window that lists active, parked and
         archived changes side by side, shows task progress for each one, and opens their Markdown artifacts in the
-        editor. It reads the files directly, so the <code>spectra</code> CLI does not need to be installed.
+        editor. It reads the files directly, so the Spectra app does not need to be running.
+        <br/>
+        <em>Unofficial:</em> a community-built third-party plugin, not affiliated with or endorsed by Spectra.
+        Spectra-related names belong to their respective owners.
     ]]></description>
 
     <!--
