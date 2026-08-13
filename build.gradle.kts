@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -52,6 +53,13 @@ intellijPlatform {
 kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_21
+        // Kotlin's default `-jvm-default=enable` copies a delegating override of *every* interface
+        // default member into the implementing class. For ToolWindowFactory that means synthetic
+        // overrides of isApplicable/isDoNotActivateOnStart/anchor/icon/manage, which the Marketplace
+        // verifier then reports as deprecated and experimental API usage even though no source calls
+        // them. Nothing here publishes a Kotlin interface for outside consumers, so the binary
+        // compatibility those bridges buy is worthless.
+        jvmDefault = JvmDefaultMode.NO_COMPATIBILITY
     }
 }
 
