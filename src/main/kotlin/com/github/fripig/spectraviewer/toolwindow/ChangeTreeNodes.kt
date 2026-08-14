@@ -96,6 +96,19 @@ data class ArtifactNode(val change: SpectraChange, val relativePath: String) : S
 }
 
 /**
+ * What the Copy action puts on the clipboard for [selection], or null when it holds no change node.
+ * Pure, so the whole rule is testable without the IDE, and the provider decides "is Copy enabled"
+ * from the same null — one judgement, so an action can never look enabled and then do nothing.
+ *
+ * Group and artifact nodes are skipped rather than blocking the copy: a rubber-band selection that
+ * happened to catch a group row should still yield the changes the user was after.
+ */
+fun copyTextFor(selection: List<SpectraNode>): String? = selection
+    .filterIsInstance<ChangeNode>()
+    .takeIf { it.isNotEmpty() }
+    ?.joinToString("\n") { it.change.name }
+
+/**
  * Builds the whole tree from one snapshot. The three group nodes are always present, including the
  * empty ones, so the user can tell "no parked changes" apart from "parked changes not scanned".
  */

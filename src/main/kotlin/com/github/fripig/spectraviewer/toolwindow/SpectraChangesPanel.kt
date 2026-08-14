@@ -5,6 +5,7 @@ import com.github.fripig.spectraviewer.model.ChangeGroup
 import com.github.fripig.spectraviewer.model.ChangeOrder
 import com.github.fripig.spectraviewer.model.SpectraSnapshot
 import com.intellij.icons.AllIcons
+import com.intellij.ide.CopyProvider
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.Disposable
@@ -12,12 +13,17 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.DataContext
+import com.intellij.openapi.actionSystem.DataSink
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.actionSystem.ToggleAction
+import com.intellij.openapi.actionSystem.UiDataProvider
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
@@ -32,6 +38,7 @@ import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.treeStructure.Tree
 import java.awt.BorderLayout
 import java.awt.GridBagLayout
+import java.awt.datatransfer.StringSelection
 import java.awt.event.MouseEvent
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
@@ -41,7 +48,8 @@ import javax.swing.SwingConstants
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 
-class SpectraChangesPanel(private val project: Project) : SimpleToolWindowPanel(true, true), Disposable {
+class SpectraChangesPanel(private val project: Project) :
+    SimpleToolWindowPanel(true, true), UiDataProvider, Disposable {
 
     private val tree = Tree(DefaultTreeModel(DefaultMutableTreeNode()))
     private val treeView = JBScrollPane(tree)
@@ -66,6 +74,8 @@ class SpectraChangesPanel(private val project: Project) : SimpleToolWindowPanel(
      */
     private var latestRequest = 0
     private var disposed = false
+
+    private val copyProvider = TreeCopyProvider()
 
     init {
         tree.isRootVisible = false
@@ -139,6 +149,24 @@ class SpectraChangesPanel(private val project: Project) : SimpleToolWindowPanel(
 
         tree.model = buildTreeModel(applyView(snapshot, order, filter), filter.isNotEmpty())
         restoreExpandedIds(tree, toExpand)
+    }
+
+    /**
+     * Publishing a [CopyProvider] is what makes the IDE's own Copy action work on this tree, so the
+     * user's own keymap applies and nothing has to be discovered on screen first.
+     */
+    override fun uiDataSnapshot(sink: DataSink) {
+        super.uiDataSnapshot(sink)
+        sink[PlatformDataKeys.COPY_PROVIDER] = copyProvider
+    }
+
+    /**
+     * Reads the selection straight off the tree — no scan, no rebuild, so copying cannot disturb the
+     * expansion state or the filter.
+     */
+    private fun selectedCopyText(): String? {
+        val paths = tree.selectionPaths ?: return null
+        return copyTextFor(paths.mapNotNull { (it.lastPathComponent as? DefaultMutableTreeNode)?.userObject as? SpectraNode })
     }
 
     private fun projectRoot(): Path? {
@@ -240,6 +268,23 @@ class SpectraChangesPanel(private val project: Project) : SimpleToolWindowPanel(
 
     override fun dispose() {
         disposed = true
+    }
+
+    /**
+     * Both answers come from [copyTextFor], so "Copy is enabled" and "Copy has something to write"
+     * can never disagree — an enabled action that silently does nothing is the failure this avoids.
+     */
+    private inner class TreeCopyProvider : CopyProvider {
+        override fun isCopyVisible(dataContext: DataContext): Boolean = true
+
+        override fun isCopyEnabled(dataContext: DataContext): Boolean = selectedCopyText() != null
+
+        override fun performCopy(dataContext: DataContext) {
+            val text = selectedCopyText() ?: return
+            CopyPasteManager.getInstance().setContents(StringSelection(text))
+        }
+
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
     }
 
     /** Radio-style: the three orders are mutually exclusive and the active one carries the check. */
