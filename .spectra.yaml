@@ -1,5 +1,5 @@
 # Spectra application config
-# See: https://github.com/spectra-app/spectra
+# See: https://spectra.5xcamp.us/
 
 # OpenSpec directory path (relative to project root)
 # Changing this requires rebuilding the vector search index.

@@ -2,7 +2,7 @@
 
 *English · [繁體中文](README.zh-TW.md)*
 
-Browse your [Spectra](https://github.com/spectra-app/spectra) changes right inside your JetBrains IDE — no app switching.
+Browse your [Spectra](https://spectra.5xcamp.us/) changes right inside your JetBrains IDE — no app switching.
 
 Spectra moves parked changes out of `openspec/changes/` into the git directory, which makes them invisible in the project tree. This plugin adds a **Spectra** tool window that lists Active, Parked, and Archived changes side by side, shows the task progress of each, and opens their Markdown documents directly in the editor.
 

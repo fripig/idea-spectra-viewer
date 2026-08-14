@@ -2,7 +2,7 @@
 
 *[English](README.md) · 繁體中文*
 
-在 JetBrains IDE 裡瀏覽 [Spectra](https://github.com/spectra-app/spectra) 的 changes，不用切app。
+在 JetBrains IDE 裡瀏覽 [Spectra](https://spectra.5xcamp.us/) 的 changes，不用切app。
 
 Spectra 會把 park 起來的 change 從 `openspec/changes/` 移到 git 目錄底下，專案樹因此完全看不到它們。這個 plugin 提供一個 **Spectra** tool window，把 Active、Parked、Archived 三類 change 並列顯示，標示各自的任務進度，並可直接在編輯器開啟它們的 Markdown 文件。
 

@@ -4,7 +4,7 @@
     <vendor email="fripig@gmail.com">fripig</vendor>
 
     <description><![CDATA[
-        Browse <a href="https://github.com/spectra-app/spectra">Spectra</a> changes without leaving the IDE.
+        Browse <a href="https://spectra.5xcamp.us/">Spectra</a> changes without leaving the IDE.
         <br/>
         Spectra moves parked changes out of <code>openspec/changes/</code> and into the git directory, where the
         project tree never shows them. This plugin adds a <b>Spectra</b> tool window that lists active, parked and
