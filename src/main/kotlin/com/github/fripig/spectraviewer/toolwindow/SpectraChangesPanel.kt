@@ -16,6 +16,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.DataSink
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.IdeActions
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.actionSystem.ToggleAction
 import com.intellij.openapi.actionSystem.UiDataProvider
@@ -30,6 +31,7 @@ import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.DoubleClickListener
+import com.intellij.ui.PopupHandler
 import com.intellij.ui.SearchTextField
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
@@ -86,6 +88,8 @@ class SpectraChangesPanel(private val project: Project) :
         object : DoubleClickListener() {
             override fun onDoubleClick(event: MouseEvent): Boolean = openArtifactAt(event)
         }.installOn(tree)
+
+        installCopyPopupMenu()
 
         setToolbar(createToolbar())
         showView(treeView)
@@ -149,6 +153,19 @@ class SpectraChangesPanel(private val project: Project) :
 
         tree.model = buildTreeModel(applyView(snapshot, order, filter), filter.isNotEmpty())
         restoreExpandedIds(tree, toExpand)
+    }
+
+    /**
+     * The menu names what it copies — the tree has three kinds of row and two of them are not
+     * copyable, so a generic "Copy" would leave the user to find that out by trying.
+     *
+     * Installed through the platform handler because that is what already knows how each OS asks
+     * for a context menu; intercepting mouse events here would mean re-implementing that.
+     */
+    private fun installCopyPopupMenu() {
+        val action = CopyChangeNameAction()
+        ActionManager.getInstance().getAction(IdeActions.ACTION_COPY)?.let { action.copyShortcutFrom(it) }
+        PopupHandler.installPopupMenu(tree, DefaultActionGroup(action), POPUP_PLACE)
     }
 
     /**
@@ -271,6 +288,20 @@ class SpectraChangesPanel(private val project: Project) :
     }
 
     /**
+     * The menu entry. It neither judges what is copyable nor touches the clipboard itself: both go
+     * through [copyProvider], so the menu and the keyboard shortcut cannot drift apart.
+     */
+    private inner class CopyChangeNameAction : AnAction(COPY_ACTION_TEXT), DumbAware {
+        override fun actionPerformed(e: AnActionEvent) = copyProvider.performCopy(e.dataContext)
+
+        override fun update(e: AnActionEvent) {
+            e.presentation.isEnabled = copyProvider.isCopyEnabled(e.dataContext)
+        }
+
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+    }
+
+    /**
      * Both answers come from [copyTextFor], so "Copy is enabled" and "Copy has something to write"
      * can never disagree — an enabled action that silently does nothing is the failure this avoids.
      */
@@ -323,6 +354,8 @@ class SpectraChangesPanel(private val project: Project) :
     private companion object {
         val LOG = Logger.getInstance(SpectraChangesPanel::class.java)
         const val TOOLBAR_PLACE = "SpectraChangesToolWindow"
+        const val POPUP_PLACE = "SpectraChangesToolWindowPopup"
+        const val COPY_ACTION_TEXT = "Copy Change Name"
         const val NOTIFICATION_GROUP_ID = "Spectra Viewer"
         // The tree always carries three group rows, so Tree.emptyText only ever shows before the
         // first snapshot lands — which is exactly the loading moment.
