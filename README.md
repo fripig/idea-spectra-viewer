@@ -15,6 +15,7 @@ The plugin reads files directly. It **does not require the Spectra app to be run
 - **Three groups side by side**: Active (`openspec/changes/`), Parked (`spectra-app/changes/` under the git directory), and Archived (`openspec/changes/archive/`). Group nodes show the change count; while filtering, they show both the matching count and the total.
 - **Task progress**: Parses each change's `tasks.md` and shows "completed／total" on the node. Checkboxes inside code blocks are ignored.
 - **Open documents**: Double-click an artifact node to open its Markdown in the editor. If the file has been deleted, you get a non-blocking notification instead of an error.
+- **Copy change names**: Select one or more change nodes and press the IDE's Copy shortcut, or right-click and choose **Copy Change Name**. You get the name alone — no group prefix, no progress counts — and one name per line when several are selected. Group and artifact nodes are not copyable, so the action stays disabled unless the selection holds at least one change.
 - **Sorting**: Sort by Name, Modified, or Created — Modified (newest first) is the default. Entries with an unknown date always sort last.
 - **Name filter**: Type to filter change names in real time (case-insensitive), applied to all three groups at once. All artifacts of a matching change are kept.
 - **Refresh**: Re-scanning from the toolbar preserves the expanded state and the filter text.
