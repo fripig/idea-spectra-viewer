@@ -25,7 +25,20 @@ Sorting and filtering only rebuild the tree — they never re-scan the file syst
 
 ## Installation
 
-Download the `.zip` from [Releases](https://github.com/fripig/idea-spectra-viewer/releases), then in your IDE choose **Settings → Plugins → ⚙ → Install Plugin from Disk...** and restart.
+[![JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/v/33519?label=JetBrains%20Marketplace)](https://plugins.jetbrains.com/plugin/33519)
+[![Downloads](https://img.shields.io/jetbrains/plugin/d/33519)](https://plugins.jetbrains.com/plugin/33519)
+
+In your IDE choose **Settings → Plugins → Marketplace**, search for **Spectra Viewer**, and install it — or install it straight from [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/33519).
+
+<div id="spectra-viewer-card"></div>
+<div id="spectra-viewer-install"></div>
+<script src="https://plugins.jetbrains.com/assets/scripts/mp-widget.js"></script>
+<script>
+  MarketplaceWidget.setupMarketplaceWidget('card', 33519, "#spectra-viewer-card");
+  MarketplaceWidget.setupMarketplaceWidget('install', 33519, "#spectra-viewer-install");
+</script>
+
+Alternatively, download the `.zip` from [Releases](https://github.com/fripig/idea-spectra-viewer/releases), then in your IDE choose **Settings → Plugins → ⚙ → Install Plugin from Disk...** and restart.
 
 Requirements: JetBrains IDE 2026.2 (build 262) or later. The plugin only depends on `com.intellij.modules.platform`, so it installs on any JetBrains IDE — PhpStorm, IntelliJ IDEA, and the rest.
 
