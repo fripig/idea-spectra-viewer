@@ -30,9 +30,6 @@ Plugin 直接讀檔案，**不需開啟 Spectra app**，也不會去碰 Spectra 
 
 在 IDE 中選 **Settings → Plugins → Marketplace**，搜尋 **Spectra Viewer** 即可安裝；也可以直接到 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/33519) 安裝。
 
-<iframe width="384px" height="319px" src="https://plugins.jetbrains.com/embeddable/card/33519"></iframe>
-<iframe width="245px" height="48px" src="https://plugins.jetbrains.com/embeddable/install/33519"></iframe>
-
 或者從 [Releases](https://github.com/fripig/idea-spectra-viewer/releases) 下載 `.zip`，在 IDE 中選 **Settings → Plugins → ⚙ → Install Plugin from Disk...** 安裝後重啟。
 
 需求：JetBrains IDE 2026.2（build 262）以上。Plugin 只依賴 `com.intellij.modules.platform`，因此 PhpStorm、IntelliJ IDEA 等所有 JetBrains IDE 都能安裝。
