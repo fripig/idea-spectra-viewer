@@ -30,13 +30,8 @@ Plugin 直接讀檔案，**不需開啟 Spectra app**，也不會去碰 Spectra 
 
 在 IDE 中選 **Settings → Plugins → Marketplace**，搜尋 **Spectra Viewer** 即可安裝；也可以直接到 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/33519) 安裝。
 
-<div id="spectra-viewer-card"></div>
-<div id="spectra-viewer-install"></div>
-<script src="https://plugins.jetbrains.com/assets/scripts/mp-widget.js"></script>
-<script>
-  MarketplaceWidget.setupMarketplaceWidget('card', 33519, "#spectra-viewer-card");
-  MarketplaceWidget.setupMarketplaceWidget('install', 33519, "#spectra-viewer-install");
-</script>
+<iframe width="384px" height="319px" src="https://plugins.jetbrains.com/embeddable/card/33519"></iframe>
+<iframe width="245px" height="48px" src="https://plugins.jetbrains.com/embeddable/install/33519"></iframe>
 
 或者從 [Releases](https://github.com/fripig/idea-spectra-viewer/releases) 下載 `.zip`，在 IDE 中選 **Settings → Plugins → ⚙ → Install Plugin from Disk...** 安裝後重啟。
 

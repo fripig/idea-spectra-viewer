@@ -30,13 +30,8 @@ Sorting and filtering only rebuild the tree — they never re-scan the file syst
 
 In your IDE choose **Settings → Plugins → Marketplace**, search for **Spectra Viewer**, and install it — or install it straight from [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/33519).
 
-<div id="spectra-viewer-card"></div>
-<div id="spectra-viewer-install"></div>
-<script src="https://plugins.jetbrains.com/assets/scripts/mp-widget.js"></script>
-<script>
-  MarketplaceWidget.setupMarketplaceWidget('card', 33519, "#spectra-viewer-card");
-  MarketplaceWidget.setupMarketplaceWidget('install', 33519, "#spectra-viewer-install");
-</script>
+<iframe width="384px" height="319px" src="https://plugins.jetbrains.com/embeddable/card/33519"></iframe>
+<iframe width="245px" height="48px" src="https://plugins.jetbrains.com/embeddable/install/33519"></iframe>
 
 Alternatively, download the `.zip` from [Releases](https://github.com/fripig/idea-spectra-viewer/releases), then in your IDE choose **Settings → Plugins → ⚙ → Install Plugin from Disk...** and restart.
 
