@@ -45,7 +45,7 @@ Requirements: JetBrains IDE 2026.2 (build 262) or later. The plugin only depends
 
 The compilation target is JVM 21, but since the build compiles against IntelliJ Platform 2026.2 artifacts, it requires a newer JDK to run (CI uses JDK 25).
 
-Release process: push a `release-<version>` tag, and GitHub Actions derives `PLUGIN_VERSION` from the tag, builds, tests, and publishes the Release.
+Release process: push a `release-<version>` tag, and GitHub Actions derives `PLUGIN_VERSION` from the tag, builds, tests, uploads the plugin to JetBrains Marketplace, and publishes the GitHub Release. To retry a Marketplace upload without cutting a new tag, run the workflow manually with the **publish** input checked — it uploads the version committed in `gradle.properties`.
 
 ## Project structure
 

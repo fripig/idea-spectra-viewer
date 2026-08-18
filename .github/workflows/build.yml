@@ -4,6 +4,11 @@ on:
   push:
     tags: ['release-*']
   workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Also publish the committed version to JetBrains Marketplace'
+        type: boolean
+        default: false
 
 # Needed to create the GitHub Release at the end of a tag build.
 permissions:
@@ -13,6 +18,9 @@ jobs:
   build:
     name: Build and release
     runs-on: ubuntu-latest
+    # Holds JETBRAIN_MARKETPLACE_TOKEN. No protection rules, so it gates nothing — it just keeps the
+    # token out of the repository-wide secret scope.
+    environment: deploy
 
     steps:
       - uses: actions/checkout@v7
@@ -66,8 +74,25 @@ jobs:
             build/test-results/test
           if-no-files-found: ignore
 
+      # Before the GitHub Release on purpose: a failed upload leaves the tag re-pushable, which an
+      # already-created release would block. A manual run publishes the version committed in
+      # gradle.properties, which is how a Marketplace upload gets retried without cutting a new tag.
+      # The token check is not redundant: publishPlugin is SKIPPED, not failed, when PUBLISH_TOKEN is
+      # missing, so without it a misnamed secret would produce a green build that published nothing.
+      - name: Publish to JetBrains Marketplace
+        if: github.ref_type == 'tag' || inputs.publish
+        env:
+          PUBLISH_TOKEN: ${{ secrets.JETBRAIN_MARKETPLACE_TOKEN }}
+        run: |
+          if [ -z "$PUBLISH_TOKEN" ]; then
+            echo "::error::JETBRAIN_MARKETPLACE_TOKEN is not available in the 'deploy' environment."
+            exit 1
+          fi
+          ./gradlew publishPlugin
+
       # gh is preinstalled on GitHub runners, so this needs no third-party action.
-      # Only tag builds publish; a manual run stops after the artifact upload.
+      # Only tag builds cut a release; a manual run stops after the artifact upload, unless it was
+      # asked to publish to the Marketplace.
       - name: Create GitHub Release
         if: github.ref_type == 'tag'
         env:

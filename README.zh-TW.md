@@ -45,7 +45,7 @@ Plugin 直接讀檔案，**不需開啟 Spectra app**，也不會去碰 Spectra 
 
 編譯目標為 JVM 21，但因為要對著 IntelliJ Platform 2026.2 的產物編譯，建置本身需要較新的 JDK（CI 使用 JDK 25）。
 
-發版流程：推送 `release-<version>` tag，GitHub Actions 會由 tag 推導 `PLUGIN_VERSION`、建置、測試並發布 Release。
+發版流程：推送 `release-<version>` tag，GitHub Actions 會由 tag 推導 `PLUGIN_VERSION`、建置、測試、上傳到 JetBrains Marketplace，並發布 GitHub Release。若只是要重試 Marketplace 上傳而不想再打一個 tag，可以手動執行 workflow 並勾選 **publish**，它會上傳 `gradle.properties` 內已 commit 的版本。
 
 ## 專案結構
 

@@ -48,6 +48,12 @@ intellijPlatform {
             untilBuild = provider { null }
         }
     }
+
+    // Only CI ever holds the Marketplace token. Without it `publishPlugin` is silently SKIPPED
+    // rather than failing, so the workflow asserts the secret is set before invoking the task.
+    publishing {
+        token = providers.environmentVariable("PUBLISH_TOKEN")
+    }
 }
 
 kotlin {
