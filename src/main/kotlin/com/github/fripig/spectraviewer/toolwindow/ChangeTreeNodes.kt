@@ -89,6 +89,20 @@ data class ChangeNode(val change: SpectraChange) : SpectraNode {
     override val id: String get() = "${change.group.name}/${change.name}"
 }
 
+/**
+ * The de-emphasised segments shown after a change node's name, in display order: the proposer, then
+ * the task progress. A segment whose value is unknown is left out rather than filled with a
+ * placeholder, so an old change with no `created_by` reads as a plain name rather than as an error.
+ *
+ * The order is fixed here rather than at the renderer so that the counts always end the row: were
+ * the proposer last, the counts would drift left and right with the length of each proposer's name,
+ * and the one number the user scans for would never sit in the same place twice.
+ */
+fun changeNodeDetails(change: SpectraChange): List<String> = listOfNotNull(
+    change.createdBy,
+    change.progress?.let { "${it.complete}/${it.total}" },
+)
+
 data class ArtifactNode(val change: SpectraChange, val relativePath: String) : SpectraNode {
     override val id: String get() = "${change.group.name}/${change.name}/$relativePath"
 
@@ -179,12 +193,13 @@ class SpectraTreeCellRenderer : ColoredTreeCellRenderer() {
                 append("  ${groupCountText(node)}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
             }
 
+            // One path for all three groups: an archived change answers the same question as an
+            // active one — who proposed it — so it shows `created_by`, never whoever archived it.
             is ChangeNode -> {
                 icon = AllIcons.Nodes.Module
                 append(node.change.name)
-                val progress = node.change.progress
-                if (progress != null) {
-                    append("  ${progress.complete}/${progress.total}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+                for (detail in changeNodeDetails(node.change)) {
+                    append("  $detail", SimpleTextAttributes.GRAYED_ATTRIBUTES)
                 }
             }
 

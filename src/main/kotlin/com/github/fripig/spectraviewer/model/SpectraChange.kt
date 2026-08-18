@@ -33,7 +33,13 @@ data class TaskProgress(val complete: Int, val total: Int)
  * [created] and [modified] deliberately use different types: the creation date comes from
  * `.openspec.yaml` and has day precision, the modification time comes from the file system. Two
  * same-typed nullable date fields side by side would be silently swappable at every call site.
- * Neither has a default value, so a new construction site cannot quietly report both as unknown.
+ *
+ * [createdBy] is the proposer's display name, taken from the `created_by` field of the same
+ * `.openspec.yaml` with the email address stripped; it is null when that field is absent or
+ * carries no usable name.
+ *
+ * None of the three has a default value, so a new construction site cannot quietly report them
+ * all as unknown.
  */
 data class SpectraChange(
     val name: String,
@@ -43,6 +49,7 @@ data class SpectraChange(
     val progress: TaskProgress?,
     val created: LocalDate?,
     val modified: Instant?,
+    val createdBy: String?,
 ) {
     val status: ChangeStatus
         get() {

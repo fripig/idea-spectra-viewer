@@ -76,6 +76,7 @@ class CopySelectionTest {
             progress = progress,
             created = null,
             modified = null,
+            createdBy = null,
         )
     }
 }

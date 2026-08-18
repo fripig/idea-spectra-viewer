@@ -95,17 +95,21 @@ object ChangeScanner {
             }
             .maxOrNull()
 
-        // `.openspec.yaml` is read only for its `created` field, and only through a parser that
-        // resolves every failure to null. A malformed metadata file therefore costs the creation
-        // date and nothing else — it can never hide an otherwise usable change.
+        // `.openspec.yaml` is read once for both the creation date and the proposer, through a
+        // parser that resolves every failure to null. A malformed metadata file therefore costs
+        // whichever field it garbled and nothing else — it can never hide an otherwise usable
+        // change, and one unusable field never costs the other.
+        val metadata = ChangeMetadataParser.parseFile(changeDir.resolve(METADATA_FILE))
+
         return SpectraChange(
             name = changeDir.name,
             group = group,
             directory = changeDir.toAbsolutePath(),
             artifacts = artifacts,
             progress = TaskProgressParser.parseFile(changeDir.resolve(TASKS_FILE)),
-            created = ChangeMetadataParser.parseCreatedFile(changeDir.resolve(METADATA_FILE)),
+            created = metadata.created,
             modified = modified,
+            createdBy = metadata.createdBy,
         )
     }
 

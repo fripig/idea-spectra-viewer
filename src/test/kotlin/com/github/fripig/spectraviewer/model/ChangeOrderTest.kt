@@ -231,6 +231,7 @@ class ChangeOrderTest {
             progress = null,
             created = created,
             modified = modified,
+            createdBy = null,
         )
     }
 }

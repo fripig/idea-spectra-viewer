@@ -243,6 +243,35 @@ class ChangeScannerTest {
         active.values.forEach { assertNull(it.created, "${it.name} should have an unknown creation date") }
     }
 
+    // ---- Requirement: Report per-change metadata (proposer) ----
+
+    @Test
+    fun `the proposer is read from the change metadata file`(@TempDir root: Path) {
+        val change = root.resolve("openspec/changes/add-search")
+        Files.createDirectories(change)
+        Files.writeString(
+            change.resolve(".openspec.yaml"),
+            "schema: spec-driven\ncreated: 2026-08-10\ncreated_by: fripig <fripig@gmail.com>\n",
+        )
+
+        val reported = scan(root).active.single()
+
+        assertEquals("fripig", reported.createdBy, "the email address is not part of the display name")
+        assertEquals(LocalDate.of(2026, 8, 10), reported.created, "the creation date is unaffected")
+    }
+
+    @Test
+    fun `a change without a metadata file is reported with an unknown proposer`(@TempDir root: Path) {
+        val change = root.resolve("openspec/changes/add-search")
+        Files.createDirectories(change)
+        Files.writeString(change.resolve("proposal.md"), "# Proposal\n")
+
+        val reported = scan(root).active.single()
+
+        assertEquals("add-search", reported.name, "a missing metadata file must never remove a change")
+        assertNull(reported.createdBy)
+    }
+
     // ---- Requirement: Report per-change metadata (modification date) ----
 
     @Test
