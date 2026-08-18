@@ -14,6 +14,7 @@ Plugin 直接讀檔案，**不需開啟 Spectra app**，也不會去碰 Spectra 
 
 - **三組並列**：Active（`openspec/changes/`）、Parked（git 目錄下的 `spectra-app/changes/`）、Archived（`openspec/changes/archive/`）。group 節點會顯示 change 數量；篩選時同時顯示符合數與總數。
 - **任務進度**：解析 change 的 `tasks.md`，在節點上顯示「完成／總數」。程式碼區塊內的 checkbox 會被忽略。
+- **提案者**：讀取 change 的 `.openspec.yaml` 中的 `created_by`，在 change 名稱與任務進度之間顯示提案者，三組皆適用。只顯示名字，email 會被捨去；metadata 沒有可用名字時不顯示提案者，也不留佔位文字。
 - **開啟文件**：雙擊 artifact 節點即在編輯器開啟該 Markdown。檔案已被刪除時只跳非阻斷式通知，不會噴錯。
 - **複製 change 名稱**：選取一或多個 change 節點後按 IDE 的複製快捷鍵，或按右鍵選 **Copy Change Name**。複製到的是名稱本身——不含分組前綴，也不含進度數字——多選時一行一個。group 與 artifact 節點不可複製，因此選取範圍內沒有 change 時該動作維持停用。
 - **排序**：可依 Name、Modified、Created 排序，預設 Modified（最新在前）。日期未知者一律排最後。
