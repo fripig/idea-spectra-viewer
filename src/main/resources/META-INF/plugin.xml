@@ -15,6 +15,41 @@
         Spectra-related names belong to their respective owners.
     ]]></description>
 
+    <change-notes><![CDATA[
+        <h4>0.4.1</h4>
+        <ul>
+            <li>Release notes are now shipped with the plugin, so this page finally has a What's new section. No functional changes.</li>
+        </ul>
+        <h4>0.4.0</h4>
+        <ul>
+            <li>Change nodes show the proposer, read from <code>created_by</code> in each change's <code>.openspec.yaml</code>, in all three groups. Only the name is shown, never the email address, and a change without a usable name shows no placeholder.</li>
+        </ul>
+        <h4>0.3.0</h4>
+        <ul>
+            <li>Copy change names: select one or more change nodes and press the IDE's Copy shortcut, or right-click and choose <b>Copy Change Name</b>. You get the bare name — no group prefix, no progress counts — one per line for a multiple selection.</li>
+        </ul>
+        <h4>0.2.2</h4>
+        <ul>
+            <li>Build fix: dropped the Kotlin <code>jvm-default</code> compatibility bridges that made the Marketplace verifier report deprecated and experimental API usage the plugin never called.</li>
+        </ul>
+        <h4>0.2.1</h4>
+        <ul>
+            <li>Documentation and packaging only: added the README and the MIT license. No functional changes.</li>
+        </ul>
+        <h4>0.2.0</h4>
+        <ul>
+            <li>Sorting within each group by Name, Modified or Created — Modified (newest first) is the default, and entries with an unknown date always sort last.</li>
+            <li>Name filter: type to filter change names in real time, case-insensitive, across all three groups at once.</li>
+        </ul>
+        <h4>0.1.0</h4>
+        <ul>
+            <li>First release: a <b>Spectra</b> tool window listing Active, Parked and Archived changes side by side, with the change count on each group.</li>
+            <li>Task progress parsed from each change's <code>tasks.md</code>, shown as completed／total.</li>
+            <li>Double-click an artifact node to open its Markdown in the editor.</li>
+            <li>Git worktree support: when <code>.git</code> is a file, the real git directory is resolved through <code>gitdir:</code> and <code>commondir</code> so parked changes are still found.</li>
+        </ul>
+    ]]></change-notes>
+
     <!--
       Only the platform module is required: the tool window reads files and renders a tree, with no
       PHP-specific API. That keeps the plugin installable in PhpStorm and every other JetBrains IDE.
