@@ -1,0 +1,8 @@
+<!--
+  Loaded only when the terminal plugin is present. It registers nothing on purpose: the optional
+  dependency exists so that the terminal plugin's classes are resolvable from this plugin, and the
+  send path is reached through a plain call rather than through an extension point.
+
+  The file cannot be dropped — an optional <depends> is required to name a config file.
+-->
+<idea-plugin/>

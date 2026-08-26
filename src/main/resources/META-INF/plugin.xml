@@ -16,6 +16,11 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <h4>0.5.0</h4>
+        <ul>
+            <li>Send a Spectra command straight to your terminal: right-click a change and pick <b>Send to Terminal</b> to put <code>/spectra-apply</code>, <code>/spectra-ingest</code>, <code>/spectra-archive</code> or <code>/spectra-commit</code>, already carrying that change's name, at the prompt of the terminal tab you currently have selected. The command is typed for you but never run — you press Enter yourself, so picking the wrong tab costs nothing more than a line you can delete.</li>
+            <li>With the Terminal tool window closed or empty the same menu reads <b>Copy Command</b> and writes that line to the clipboard instead. The menu title always states which of the two it is about to do.</li>
+        </ul>
         <h4>0.4.1</h4>
         <ul>
             <li>Release notes are now shipped with the plugin, so this page finally has a What's new section. No functional changes.</li>
@@ -51,10 +56,19 @@
     ]]></change-notes>
 
     <!--
-      Only the platform module is required: the tool window reads files and renders a tree, with no
-      PHP-specific API. That keeps the plugin installable in PhpStorm and every other JetBrains IDE.
+      The platform module is the only hard requirement: the tool window reads files and renders a
+      tree, with no PHP-specific API. That keeps the plugin installable in PhpStorm and every other JetBrains IDE.
     -->
     <depends>com.intellij.modules.platform</depends>
+
+    <!--
+      Optional so that an IDE whose terminal plugin is disabled still loads this one. Without it the
+      tool window simply never offers to send a command and copies it to the clipboard instead.
+
+      The dependency exists to put the terminal plugin's classes within reach; the file it names
+      registers nothing, because nothing here hooks into the terminal through an extension point.
+    -->
+    <depends optional="true" config-file="spectra-viewer-terminal.xml">org.jetbrains.plugins.terminal</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow

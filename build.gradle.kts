@@ -1,3 +1,4 @@
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -23,11 +24,17 @@ repositories {
 
 dependencies {
     intellijPlatform {
-        // IntelliJ IDEA rather than PhpStorm: the tool window only needs the platform module,
-        // so building against IDEA keeps the plugin installable in every JetBrains IDE.
+        // IntelliJ IDEA rather than PhpStorm: nothing here needs a PHP-specific API, so building
+        // against IDEA keeps the plugin installable in every JetBrains IDE.
         // The Community (IC) artifact is no longer published since 2025.3 — the unified
         // IntelliJ IDEA distribution replaces it.
         intellijIdea(providers.gradleProperty("platformVersion"))
+
+        // Compile-time only. The runtime dependency is declared optional in plugin.xml, so an IDE
+        // with the terminal plugin disabled still loads this one; this line merely puts
+        // TerminalToolWindowManager within reach of the sender. The TerminalWidget interface it
+        // returns lives in the platform, not here.
+        bundledPlugin("org.jetbrains.plugins.terminal")
         // No testFramework() on purpose: the discovery layer is plain JVM code and its tests need no
         // IDE fixture. Pulling in the platform test framework would register its own JUnit 5
         // LauncherSessionListener, which fails to instantiate outside a real IDE test run.
@@ -46,6 +53,15 @@ intellijPlatform {
         ideaVersion {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
             untilBuild = provider { null }
+        }
+    }
+
+    // Binary compatibility check against the same IDE the plugin is built for. Pinned to
+    // platformVersion rather than recommended(): untilBuild is deliberately open-ended, so
+    // recommended() would fan out across every release the range admits and download each one.
+    pluginVerification {
+        ides {
+            create(IntelliJPlatformType.IntellijIdea, providers.gradleProperty("platformVersion"))
         }
     }
 

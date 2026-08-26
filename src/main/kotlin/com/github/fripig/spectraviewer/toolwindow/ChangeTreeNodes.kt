@@ -123,6 +123,46 @@ fun copyTextFor(selection: List<SpectraNode>): String? = selection
     ?.joinToString("\n") { it.change.name }
 
 /**
+ * The Spectra commands the tree offers for a change, in the order the submenu lists them. That
+ * order is the project's own workflow: apply and ingest alternate while the change is being built,
+ * archive ends it, and commit lands the files of whichever step just finished.
+ *
+ * Declaration order is what the user sees, so reordering these members reorders the menu.
+ */
+enum class SpectraCommand(val slashCommand: String) {
+    APPLY("/spectra-apply"),
+    INGEST("/spectra-ingest"),
+    ARCHIVE("/spectra-archive"),
+    COMMIT("/spectra-commit"),
+}
+
+/**
+ * The line a submenu item both shows and delivers. One function for both, so the text on screen and
+ * the text that reaches the terminal cannot drift apart — the one place the user must be able to
+ * trust is that they are the same string.
+ *
+ * The name is passed through verbatim: nothing is run on the user's behalf, and the whole line is
+ * visible twice — in the menu and at the prompt — before Enter is theirs to press. Quoting would buy
+ * nothing and would disfigure every ordinary kebab-case name.
+ */
+fun commandTextFor(command: SpectraCommand, changeName: String): String =
+    "${command.slashCommand} $changeName"
+
+/**
+ * The change a command applies to, or null when [selection] does not name exactly one.
+ *
+ * Returns the change rather than a boolean for the reason [copyTextFor] returns the text: the
+ * submenu answers "is this enabled" and "what does it send" from one call, so an enabled item can
+ * never turn out to have nothing to send.
+ *
+ * Group and artifact nodes are skipped rather than counted, exactly as in [copyTextFor]. Two change
+ * nodes yield null instead: the newline-joined text [copyTextFor] produces would arrive at a shell
+ * as two consecutive commands, which is never what the user meant.
+ */
+fun commandTargetFor(selection: List<SpectraNode>): SpectraChange? =
+    selection.filterIsInstance<ChangeNode>().singleOrNull()?.change
+
+/**
  * Builds the whole tree from one snapshot. The three group nodes are always present, including the
  * empty ones, so the user can tell "no parked changes" apart from "parked changes not scanned".
  */

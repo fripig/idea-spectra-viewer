@@ -57,6 +57,21 @@ jobs:
       - name: Build, test and package
         run: ./gradlew build verifyPluginProjectConfiguration buildPlugin
 
+      # Binary compatibility against the IDE this is built for. Separate from the step above because
+      # it downloads the Plugin Verifier CLI, and because its failures are a different kind: an
+      # internal-API call compiles and runs perfectly well here and is rejected by the Marketplace.
+      # Catching that at build time is the whole point — waiting for review is too late.
+      - name: Verify plugin binary compatibility
+        run: ./gradlew verifyPlugin
+
+      - name: Upload plugin verifier report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: plugin-verifier-report
+          path: build/reports/pluginVerifier/**
+          if-no-files-found: ignore
+
       - name: Upload plugin distribution
         uses: actions/upload-artifact@v7
         with:

@@ -1,6 +1,7 @@
 package com.github.fripig.spectraviewer.toolwindow
 
 import com.github.fripig.spectraviewer.discovery.ChangeScanner
+import com.github.fripig.spectraviewer.terminal.TerminalCommandSender
 import com.github.fripig.spectraviewer.model.ChangeGroup
 import com.github.fripig.spectraviewer.model.ChangeOrder
 import com.github.fripig.spectraviewer.model.SpectraSnapshot
@@ -24,6 +25,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
@@ -165,7 +167,43 @@ class SpectraChangesPanel(private val project: Project) :
     private fun installCopyPopupMenu() {
         val action = CopyChangeNameAction()
         ActionManager.getInstance().getAction(IdeActions.ACTION_COPY)?.let { action.copyShortcutFrom(it) }
-        PopupHandler.installPopupMenu(tree, DefaultActionGroup(action), POPUP_PLACE)
+        PopupHandler.installPopupMenu(tree, DefaultActionGroup(action, CommandGroup()), POPUP_PLACE)
+    }
+
+    /**
+     * Whether a command can be sent to a terminal right now.
+     *
+     * The plugin check comes first and the short circuit is the point, not a micro-optimisation:
+     * with the terminal plugin disabled, [TerminalCommandSender]'s method bodies would fail to
+     * resolve their terminal types. Never reaching the call keeps them unresolved and the tool
+     * window intact.
+     *
+     * The question asked is whether the terminal plugin's classes resolve, not whether the IDE
+     * lists it as installed or enabled — resolvability is the condition that actually decides
+     * whether the call below can run, and the plugin query APIs that answer the adjacent questions
+     * are either deprecated or marked internal.
+     */
+    private fun hasTerminalTarget(): Boolean = terminalClassesResolvable && TerminalCommandSender.hasTarget(project)
+
+    /**
+     * Whether this plugin's class loader can reach the terminal plugin. An optional dependency puts
+     * those classes within reach only while that plugin is running, so this answer is exactly the
+     * one that matters.
+     *
+     * Cached because it cannot change without an IDE restart, and this is asked every time the
+     * context menu opens.
+     */
+    private val terminalClassesResolvable: Boolean by lazy {
+        try {
+            // initialize = false: resolving the class is the whole question. Running its static
+            // initialisers would be a side effect asked of a mere availability check.
+            Class.forName(TERMINAL_MANAGER_CLASS, false, javaClass.classLoader)
+            true
+        } catch (e: ClassNotFoundException) {
+            false
+        } catch (e: NoClassDefFoundError) {
+            false
+        }
     }
 
     /**
@@ -181,10 +219,42 @@ class SpectraChangesPanel(private val project: Project) :
      * Reads the selection straight off the tree — no scan, no rebuild, so copying cannot disturb the
      * expansion state or the filter.
      */
-    private fun selectedCopyText(): String? {
-        val paths = tree.selectionPaths ?: return null
-        return copyTextFor(paths.mapNotNull { (it.lastPathComponent as? DefaultMutableTreeNode)?.userObject as? SpectraNode })
+    private fun selectedCopyText(): String? = copyTextFor(selectedNodes())
+
+    /** The selection as tree nodes. Reads the tree only — no scan, so nothing here can disturb it. */
+    private fun selectedNodes(): List<SpectraNode> =
+        tree.selectionPaths.orEmpty()
+            .mapNotNull { (it.lastPathComponent as? DefaultMutableTreeNode)?.userObject as? SpectraNode }
+
+    /**
+     * Hands one command line to wherever it belongs, and is the only place that decides which.
+     *
+     * A second caller would be a second chance to forget the fallback, which is why [send][
+     * TerminalCommandSender.send] returning false is handled here rather than reported outwards:
+     * a command the user asked for reaches them either way.
+     */
+    private fun deliver(text: String) {
+        if (sentToTerminal(text)) return
+        CopyPasteManager.getInstance().setContents(StringSelection(text))
     }
+
+    /**
+     * Whether the text reached a terminal. Anything at all going wrong on that side answers no, and
+     * the clipboard catches the command — the user asked for it and must end up holding it.
+     *
+     * Throwable rather than Exception because this call crosses into another plugin: with the
+     * terminal plugin gone mid-session, resolving its classes raises an Error, not an Exception.
+     * Cancellation is the one thing that must keep travelling, so it is rethrown first.
+     */
+    private fun sentToTerminal(text: String): Boolean =
+        try {
+            hasTerminalTarget() && TerminalCommandSender.send(project, text)
+        } catch (e: ProcessCanceledException) {
+            throw e
+        } catch (e: Throwable) {
+            LOG.warn("Sending a Spectra command to the terminal failed", e)
+            false
+        }
 
     private fun projectRoot(): Path? {
         val basePath = project.basePath ?: return null
@@ -302,6 +372,47 @@ class SpectraChangesPanel(private val project: Project) :
     }
 
     /**
+     * The command submenu. Its title states what invoking an item will actually do, so the user is
+     * never told "Send to Terminal" by a menu that is about to write to the clipboard instead.
+     *
+     * Enabled only for a single change: the newline-joined text a multi-selection copy produces
+     * would reach a shell as several consecutive commands.
+     */
+    private inner class CommandGroup : DefaultActionGroup(SEND_SUBMENU_TEXT, true), DumbAware {
+        init {
+            SpectraCommand.entries.forEach { add(CommandItem(it)) }
+        }
+
+        override fun update(e: AnActionEvent) {
+            e.presentation.text = if (hasTerminalTarget()) SEND_SUBMENU_TEXT else COPY_COMMAND_SUBMENU_TEXT
+            e.presentation.isEnabled = commandTargetFor(selectedNodes()) != null
+        }
+
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+    }
+
+    /**
+     * One command. Its label is the very line it delivers — the same string from the same function,
+     * so what the user reads before clicking is what lands at the prompt afterwards.
+     */
+    private inner class CommandItem(private val command: SpectraCommand) : AnAction(), DumbAware {
+        override fun actionPerformed(e: AnActionEvent) {
+            val target = commandTargetFor(selectedNodes()) ?: return
+            deliver(commandTextFor(command, target.name))
+        }
+
+        override fun update(e: AnActionEvent) {
+            val target = commandTargetFor(selectedNodes())
+            e.presentation.isEnabled = target != null
+            // Falls back to the bare command rather than a blank row: a disabled parent is not
+            // expanded, but an item with no text at all would be a defect if it ever showed.
+            e.presentation.text = target?.let { commandTextFor(command, it.name) } ?: command.slashCommand
+        }
+
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+    }
+
+    /**
      * Both answers come from [copyTextFor], so "Copy is enabled" and "Copy has something to write"
      * can never disagree — an enabled action that silently does nothing is the failure this avoids.
      */
@@ -356,6 +467,9 @@ class SpectraChangesPanel(private val project: Project) :
         const val TOOLBAR_PLACE = "SpectraChangesToolWindow"
         const val POPUP_PLACE = "SpectraChangesToolWindowPopup"
         const val COPY_ACTION_TEXT = "Copy Change Name"
+        const val SEND_SUBMENU_TEXT = "Send to Terminal"
+        const val COPY_COMMAND_SUBMENU_TEXT = "Copy Command"
+        const val TERMINAL_MANAGER_CLASS = "org.jetbrains.plugins.terminal.TerminalToolWindowManager"
         const val NOTIFICATION_GROUP_ID = "Spectra Viewer"
         // The tree always carries three group rows, so Tree.emptyText only ever shows before the
         // first snapshot lands — which is exactly the loading moment.
