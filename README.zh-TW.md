@@ -4,7 +4,7 @@
 
 在 JetBrains IDE 裡瀏覽 [Spectra](https://spectra.5xcamp.us/) 的 changes，不用切app。
 
-Spectra 會把 park 起來的 change 從 `openspec/changes/` 移到 git 目錄底下，專案樹因此完全看不到它們。這個 plugin 提供一個 **Spectra** tool window，把 Active、Parked、Archived 三類 change 並列顯示，標示各自的任務進度，並可直接在編輯器開啟它們的 Markdown 文件。
+Spectra 會把 park 起來的 change 從 `openspec/changes/` 移到 git 目錄底下，專案樹因此完全看不到它們。這個 plugin 提供一個 **Spectra** tool window，把 Active、Parked、Archived 三類 change 並列顯示，標示各自的任務進度，可直接在編輯器開啟它們的 Markdown 文件，也能把對應的 spectra 指令直接送進終端機。
 
 Plugin 直接讀檔案，**不需開啟 Spectra app**，也不會去碰 Spectra 的內部資料庫。
 
@@ -17,6 +17,7 @@ Plugin 直接讀檔案，**不需開啟 Spectra app**，也不會去碰 Spectra 
 - **提案者**：讀取 change 的 `.openspec.yaml` 中的 `created_by`，在 change 名稱與任務進度之間顯示提案者，三組皆適用。只顯示名字，email 會被捨去；metadata 沒有可用名字時不顯示提案者，也不留佔位文字。
 - **開啟文件**：雙擊 artifact 節點即在編輯器開啟該 Markdown。檔案已被刪除時只跳非阻斷式通知，不會噴錯。
 - **複製 change 名稱**：選取一或多個 change 節點後按 IDE 的複製快捷鍵，或按右鍵選 **Copy Change Name**。複製到的是名稱本身——不含分組前綴，也不含進度數字——多選時一行一個。group 與 artifact 節點不可複製，因此選取範圍內沒有 change 時該動作維持停用。
+- **送出 spectra 指令**：在 change 上按右鍵選 **Send to Terminal**，即可把 `/spectra-apply`、`/spectra-ingest`、`/spectra-archive`、`/spectra-commit`（都已帶上該 change 的名稱）填進你當下選中的終端機分頁。指令只填入、不執行——Enter 由你自己按，所以就算切錯分頁，代價也不過是多一行可以刪掉的文字。Terminal 工具視窗未開或沒有分頁時，同一個選單會顯示 **Copy Command** 並改寫入剪貼簿；選單標題永遠說明它接下來會做的是哪一件事。恰好選取一個 change 時才可用。
 - **排序**：可依 Name、Modified、Created 排序，預設 Modified（最新在前）。日期未知者一律排最後。
 - **名稱篩選**：輸入文字即時過濾 change 名稱（不分大小寫），三組同時套用；符合的 change 其 artifact 全部保留。
 - **Refresh**：工具列的重新掃描會保留展開狀態與篩選文字。
@@ -33,17 +34,20 @@ Plugin 直接讀檔案，**不需開啟 Spectra app**，也不會去碰 Spectra 
 
 或者從 [Releases](https://github.com/fripig/idea-spectra-viewer/releases) 下載 `.zip`，在 IDE 中選 **Settings → Plugins → ⚙ → Install Plugin from Disk...** 安裝後重啟。
 
-需求：JetBrains IDE 2026.2（build 262）以上。Plugin 只依賴 `com.intellij.modules.platform`，因此 PhpStorm、IntelliJ IDEA 等所有 JetBrains IDE 都能安裝。
+需求：JetBrains IDE 2026.2（build 262）以上。唯一的硬相依是 `com.intellij.modules.platform`，因此 PhpStorm、IntelliJ IDEA 等所有 JetBrains IDE 都能安裝。送出指令另外會用到內建的 Terminal plugin，屬 optional 相依：該 plugin 被停用時其餘功能照常運作，指令子選單則單純改為複製。
 
 ## 開發
 
 ```bash
 ./gradlew build          # 編譯並執行單元測試
 ./gradlew buildPlugin    # 產出 build/distributions/*.zip
+./gradlew verifyPlugin   # 二進位相容性檢查，CI 也會跑
 ./gradlew runIde         # 在沙箱 IDE 中試跑
 ```
 
 編譯目標為 JVM 21，但因為要對著 IntelliJ Platform 2026.2 的產物編譯，建置本身需要較新的 JDK（CI 使用 JDK 25）。
+
+發版前值得先跑一次 `verifyPlugin`：呼叫到平台的 internal API 在本機編譯與執行都完全正常，卻會被 Marketplace 擋下來。首次執行會下載 Plugin Verifier CLI。
 
 發版流程：推送 `release-<version>` tag，GitHub Actions 會由 tag 推導 `PLUGIN_VERSION`、建置、測試、上傳到 JetBrains Marketplace，並發布 GitHub Release。若只是要重試 Marketplace 上傳而不想再打一個 tag，可以手動執行 workflow 並勾選 **publish**，它會上傳 `gradle.properties` 內已 commit 的版本。
 
@@ -53,6 +57,7 @@ Plugin 直接讀檔案，**不需開啟 Spectra app**，也不會去碰 Spectra 
 src/main/kotlin/com/github/fripig/spectraviewer/
 ├── discovery/   # 掃描檔案系統、解析 tasks.md 與 .openspec.yaml
 ├── model/       # SpectraChange、排序規則
+├── terminal/    # 全專案唯一碰觸 Terminal plugin 的地方
 └── toolwindow/  # tool window UI 與樹狀節點
 openspec/specs/  # Spectra 規格（本專案自身以 SDD 開發）
 ```
