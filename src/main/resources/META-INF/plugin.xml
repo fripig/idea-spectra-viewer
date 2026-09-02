@@ -74,7 +74,7 @@
         <toolWindow
             id="Spectra"
             anchor="right"
-            icon="AllIcons.Toolwindows.ToolWindowStructure"
+            icon="/icons/spectraToolWindow.svg"
             factoryClass="com.github.fripig.spectraviewer.toolwindow.SpectraToolWindowFactory"/>
         <notificationGroup
             id="Spectra Viewer"
