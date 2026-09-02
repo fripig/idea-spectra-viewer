@@ -16,6 +16,10 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <h4>0.5.1</h4>
+        <ul>
+            <li>The plugin and its tool window now carry their own icon — a prism splitting light into a spectrum — instead of the platform's generic structure icon. No functional changes.</li>
+        </ul>
         <h4>0.5.0</h4>
         <ul>
             <li>Send a Spectra command straight to your terminal: right-click a change and pick <b>Send to Terminal</b> to put <code>/spectra-apply</code>, <code>/spectra-ingest</code>, <code>/spectra-archive</code> or <code>/spectra-commit</code>, already carrying that change's name, at the prompt of the terminal tab you currently have selected. The command is typed for you but never run — you press Enter yourself, so picking the wrong tab costs nothing more than a line you can delete.</li>
