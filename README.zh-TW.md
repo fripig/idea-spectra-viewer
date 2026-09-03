@@ -2,6 +2,11 @@
 
 *[English](README.md) · 繁體中文*
 
+[![Build](https://github.com/fripig/idea-spectra-viewer/actions/workflows/build.yml/badge.svg)](https://github.com/fripig/idea-spectra-viewer/actions/workflows/build.yml)
+[![JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/v/33519?label=JetBrains%20Marketplace)](https://plugins.jetbrains.com/plugin/33519)
+[![Downloads](https://img.shields.io/jetbrains/plugin/d/33519)](https://plugins.jetbrains.com/plugin/33519)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 在 JetBrains IDE 裡瀏覽 [Spectra](https://spectra.5xcamp.us/) 的 changes，不用切app。
 
 Spectra 會把 park 起來的 change 從 `openspec/changes/` 移到 git 目錄底下，專案樹因此完全看不到它們。這個 plugin 提供一個 **Spectra** tool window，把 Active、Parked、Archived 三類 change 並列顯示，標示各自的任務進度，可直接在編輯器開啟它們的 Markdown 文件，也能把對應的 spectra 指令直接送進終端機。
@@ -26,9 +31,6 @@ Plugin 直接讀檔案，**不需開啟 Spectra app**，也不會去碰 Spectra 
 排序與篩選都只重建樹，不會重新掃描檔案系統；掃描本身一律在背景執行緒進行，不阻塞 EDT。
 
 ## 安裝
-
-[![JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/v/33519?label=JetBrains%20Marketplace)](https://plugins.jetbrains.com/plugin/33519)
-[![Downloads](https://img.shields.io/jetbrains/plugin/d/33519)](https://plugins.jetbrains.com/plugin/33519)
 
 在 IDE 中選 **Settings → Plugins → Marketplace**，搜尋 **Spectra Viewer** 即可安裝；也可以直接到 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/33519) 安裝。
 
@@ -62,6 +64,12 @@ src/main/kotlin/com/github/fripig/spectraviewer/
 openspec/specs/  # Spectra 規格（本專案自身以 SDD 開發）
 ```
 
+## 貢獻者
+
+感謝所有貢獻過的人：
+
+[![Contributors](https://contrib.rocks/image?repo=fripig/idea-spectra-viewer)](https://github.com/fripig/idea-spectra-viewer/graphs/contributors)
+
 ## 授權
 
-[MIT](LICENSE) © fripig
+[MIT](LICENSE) © fripig 與貢獻者

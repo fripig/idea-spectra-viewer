@@ -2,6 +2,11 @@
 
 *English · [繁體中文](README.zh-TW.md)*
 
+[![Build](https://github.com/fripig/idea-spectra-viewer/actions/workflows/build.yml/badge.svg)](https://github.com/fripig/idea-spectra-viewer/actions/workflows/build.yml)
+[![JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/v/33519?label=JetBrains%20Marketplace)](https://plugins.jetbrains.com/plugin/33519)
+[![Downloads](https://img.shields.io/jetbrains/plugin/d/33519)](https://plugins.jetbrains.com/plugin/33519)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Browse your [Spectra](https://spectra.5xcamp.us/) changes right inside your JetBrains IDE — no app switching.
 
 Spectra moves parked changes out of `openspec/changes/` into the git directory, which makes them invisible in the project tree. This plugin adds a **Spectra** tool window that lists Active, Parked, and Archived changes side by side, shows the task progress of each, opens their Markdown documents directly in the editor, and hands the matching Spectra command straight to your terminal.
@@ -26,9 +31,6 @@ The plugin reads files directly. It **does not require the Spectra app to be run
 Sorting and filtering only rebuild the tree — they never re-scan the file system. Scanning itself always runs on a background thread and never blocks the EDT.
 
 ## Installation
-
-[![JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/v/33519?label=JetBrains%20Marketplace)](https://plugins.jetbrains.com/plugin/33519)
-[![Downloads](https://img.shields.io/jetbrains/plugin/d/33519)](https://plugins.jetbrains.com/plugin/33519)
 
 In your IDE choose **Settings → Plugins → Marketplace**, search for **Spectra Viewer**, and install it — or install it straight from [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/33519).
 
@@ -62,6 +64,12 @@ src/main/kotlin/com/github/fripig/spectraviewer/
 openspec/specs/  # Spectra specs (this project is itself developed with SDD)
 ```
 
+## Contributors
+
+Thanks to everyone who has contributed:
+
+[![Contributors](https://contrib.rocks/image?repo=fripig/idea-spectra-viewer)](https://github.com/fripig/idea-spectra-viewer/graphs/contributors)
+
 ## License
 
-[MIT](LICENSE) © fripig
+[MIT](LICENSE) © fripig and contributors
