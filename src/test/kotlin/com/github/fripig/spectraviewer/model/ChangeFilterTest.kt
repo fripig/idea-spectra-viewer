@@ -146,4 +146,50 @@ class ChangeFilterTest {
         )
         assertTrue(ChangeFilter(includeUnknownAuthor = true).isActive)
     }
+
+    // ---- Requirement: Filter changes by author (a refresh reconciles the selection) ----
+
+    @Test
+    fun `a refresh keeps the authors the new snapshot still offers`() {
+        val filter = ChangeFilter(authors = setOf("alice", "bob"))
+
+        val reconciled = filter.reconciledWith(AuthorCandidates(authors = listOf("alice"), hasUnknown = false))
+
+        assertEquals(setOf("alice"), reconciled.authors, "an author who is gone cannot stay selected")
+    }
+
+    @Test
+    fun `a refresh keeps every author that is still offered`() {
+        val filter = ChangeFilter(authors = setOf("alice", "bob"))
+
+        val reconciled = filter.reconciledWith(
+            AuthorCandidates(authors = listOf("alice", "bob", "carol"), hasUnknown = false),
+        )
+
+        assertEquals(setOf("alice", "bob"), reconciled.authors, "a new candidate is not selected on the user's behalf")
+    }
+
+    @Test
+    fun `a refresh drops the unknown candidate once every change has a proposer`() {
+        val filter = ChangeFilter(authors = setOf("alice"), includeUnknownAuthor = true)
+
+        val reconciled = filter.reconciledWith(AuthorCandidates(authors = listOf("alice"), hasUnknown = false))
+
+        assertFalse(reconciled.includeUnknownAuthor)
+        assertEquals(setOf("alice"), reconciled.authors)
+    }
+
+    @Test
+    fun `a refresh leaves the filter text alone`() {
+        val filter = ChangeFilter(text = "add", authors = setOf("bob"))
+
+        assertEquals("add", filter.reconciledWith(AuthorCandidates.NONE).text)
+    }
+
+    @Test
+    fun `a refresh that offers nothing clears the author selection entirely`() {
+        val filter = ChangeFilter(authors = setOf("alice"), includeUnknownAuthor = true)
+
+        assertEquals(ChangeFilter.NONE, filter.reconciledWith(AuthorCandidates.NONE))
+    }
 }

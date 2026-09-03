@@ -43,6 +43,19 @@ data class ChangeFilter(
         return proposer in authors
     }
 
+    /**
+     * This filter as it applies to [candidates]: authors the new snapshot no longer offers lose
+     * their selection, the rest keep it, and the text is untouched.
+     *
+     * Keeping a selection whose candidate has vanished would leave the user staring at an empty
+     * tree with no way to undo it — the control that hid everything is no longer on screen. Nothing
+     * is ever selected on the user's behalf: a new candidate arrives unselected.
+     */
+    fun reconciledWith(candidates: AuthorCandidates): ChangeFilter = copy(
+        authors = authors intersect candidates.authors.toSet(),
+        includeUnknownAuthor = includeUnknownAuthor && candidates.hasUnknown,
+    )
+
     companion object {
         /** Filters nothing: every change survives and group rows show a plain total. */
         val NONE = ChangeFilter()
