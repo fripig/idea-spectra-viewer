@@ -11,4 +11,4 @@
 ## 3. 驗證與發版
 
 - [x] 3.1 完整建置與測試：`./gradlew build --no-watch-fs` 成功，測試全綠，verifyPlugin 除既有 13 筆 experimental API 警告外沒有新問題。驗證：貼出 gradle 輸出。
-- [ ] 3.2 發版：確認 change-notes 已含本版條目後，bump 版本並打 release tag。驗證：`git tag` 列出新 tag，且 tag 指向含 change-notes 的 commit。
+- [x] 3.2 發版：確認 change-notes 已含本版條目後，bump 版本並打 release tag。驗證：`git tag` 列出新 tag，且 tag 指向含 change-notes 的 commit。
