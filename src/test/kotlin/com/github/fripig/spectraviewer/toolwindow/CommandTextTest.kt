@@ -16,6 +16,7 @@ class CommandTextTest {
 
     @ParameterizedTest(name = "{0} on add-search produces {1}")
     @CsvSource(
+        "DISCUSS, /spectra-discuss add-search",
         "APPLY,   /spectra-apply add-search",
         "INGEST,  /spectra-ingest add-search",
         "ARCHIVE, /spectra-archive add-search",
@@ -37,9 +38,9 @@ class CommandTextTest {
     }
 
     @Test
-    fun `the four commands are offered in workflow order`() {
+    fun `the five commands are offered in workflow order`() {
         assertEquals(
-            listOf("/spectra-apply", "/spectra-ingest", "/spectra-archive", "/spectra-commit"),
+            listOf("/spectra-discuss", "/spectra-apply", "/spectra-ingest", "/spectra-archive", "/spectra-commit"),
             SpectraCommand.entries.map { it.slashCommand },
             "the submenu renders them in declaration order, so the enum fixes what the user sees",
         )

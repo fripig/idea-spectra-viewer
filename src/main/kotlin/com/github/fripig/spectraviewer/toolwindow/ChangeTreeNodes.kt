@@ -125,12 +125,14 @@ fun copyTextFor(selection: List<SpectraNode>): String? = selection
 
 /**
  * The Spectra commands the tree offers for a change, in the order the submenu lists them. That
- * order is the project's own workflow: apply and ingest alternate while the change is being built,
- * archive ends it, and commit lands the files of whichever step just finished.
+ * order is the project's own workflow: discuss opens a change, apply and ingest alternate while it
+ * is being built, archive ends it, and commit lands the files of whichever step just finished — so
+ * it comes last. Propose is deliberately absent: it creates a change rather than acting on one.
  *
  * Declaration order is what the user sees, so reordering these members reorders the menu.
  */
 enum class SpectraCommand(val slashCommand: String) {
+    DISCUSS("/spectra-discuss"),
     APPLY("/spectra-apply"),
     INGEST("/spectra-ingest"),
     ARCHIVE("/spectra-archive"),

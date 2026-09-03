@@ -16,6 +16,10 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <h4>0.6.0</h4>
+        <ul>
+            <li>The <b>Send to Terminal</b> / <b>Copy Command</b> menu now also offers <code>/spectra-discuss</code>, and lists its commands in the order of the Spectra workflow: discuss, apply, ingest, archive, then commit.</li>
+        </ul>
         <h4>0.5.3</h4>
         <ul>
             <li>Filter changes by author: a new toolbar popup lists every proposer found across the Active, Parked and Archived groups, and you can tick any number of them at once. Changes whose proposer is not among the ticked authors are hidden from all three groups, while each group header keeps showing how many changes it holds in total, so a filtered-out change is never mistaken for a missing one.</li>
