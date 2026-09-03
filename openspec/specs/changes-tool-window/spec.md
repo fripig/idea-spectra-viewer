@@ -545,7 +545,7 @@ tests:
 ---
 ### Requirement: Send a Spectra command for the selected change
 
-The tool window's context menu SHALL offer a submenu that carries four Spectra commands, each already applied to the selected change: `/spectra-apply`, `/spectra-ingest`, `/spectra-archive` and `/spectra-commit`, listed in that order. Each item SHALL display the full command text it produces, so what the user reads is exactly what the item delivers.
+The tool window's context menu SHALL offer a submenu that carries five Spectra commands, each already applied to the selected change: `/spectra-discuss`, `/spectra-apply`, `/spectra-ingest`, `/spectra-archive` and `/spectra-commit`, listed in that order. The order follows the project's workflow: discuss opens a change, apply and ingest alternate while it is being built, archive ends it, and commit lands files after any step, so it is last. The submenu SHALL NOT offer `/spectra-propose`, because that command creates a change rather than acting on an existing one. Each item SHALL display the full command text it produces, so what the user reads is exactly what the item delivers.
 
 The command text SHALL be a single line consisting of the slash command name, one space, and the change name, with no trailing newline. It SHALL NOT include the group the change belongs to, and it SHALL NOT include the task progress counts or the proposer shown on the node.
 
@@ -617,6 +617,11 @@ The existing Copy Change Name item SHALL remain first in the context menu, and i
 - **WHEN** the user invokes any item in the submenu
 - **THEN** no file system scan runs, and the tree keeps its current expansion state, sort order, and filter text
 
+#### Scenario: The submenu lists the five commands in workflow order
+
+- **WHEN** the user opens the context menu on a single change node named `add-search`
+- **THEN** the submenu items read, top to bottom, `/spectra-discuss add-search`, `/spectra-apply add-search`, `/spectra-ingest add-search`, `/spectra-archive add-search`, `/spectra-commit add-search`, and no item for `/spectra-propose` is present
+
 #### Scenario: Copy Change Name is unaffected
 
 - **GIVEN** a single change node named `add-search` is selected
@@ -629,6 +634,7 @@ The existing Copy Change Name item SHALL remain first in the context menu, and i
 
 | Submenu item | Command text produced |
 | ------------ | --------------------- |
+| `/spectra-discuss add-search` | `/spectra-discuss add-search` |
 | `/spectra-apply add-search` | `/spectra-apply add-search` |
 | `/spectra-ingest add-search` | `/spectra-ingest add-search` |
 | `/spectra-archive add-search` | `/spectra-archive add-search` |
