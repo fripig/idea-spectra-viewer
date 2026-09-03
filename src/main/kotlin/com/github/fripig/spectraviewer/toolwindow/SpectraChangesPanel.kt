@@ -2,14 +2,18 @@ package com.github.fripig.spectraviewer.toolwindow
 
 import com.github.fripig.spectraviewer.discovery.ChangeScanner
 import com.github.fripig.spectraviewer.terminal.TerminalCommandSender
+import com.github.fripig.spectraviewer.model.AuthorCandidates
 import com.github.fripig.spectraviewer.model.ChangeGroup
+import com.github.fripig.spectraviewer.model.ChangeFilter
 import com.github.fripig.spectraviewer.model.ChangeOrder
 import com.github.fripig.spectraviewer.model.SpectraSnapshot
+import com.github.fripig.spectraviewer.model.reconcileAuthorFilter
 import com.intellij.icons.AllIcons
 import com.intellij.ide.CopyProvider
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
@@ -70,7 +74,13 @@ class SpectraChangesPanel(private val project: Project) :
      */
     private var lastSnapshot: SpectraSnapshot? = null
     private var order = ChangeOrder.DEFAULT
-    private var filter = ""
+    private var filter = ChangeFilter.NONE
+
+    /**
+     * What the author filter offers, recomputed from each snapshot rather than accumulated, so a
+     * proposer whose changes are gone stops being offered instead of lingering as a dead entry.
+     */
+    private var candidates = AuthorCandidates.NONE
 
     /**
      * Only the newest scan may touch the tree: a slow scan that lost a race with a later Refresh
@@ -140,6 +150,11 @@ class SpectraChangesPanel(private val project: Project) :
         }
 
         lastSnapshot = snapshot
+        // Candidates and the selection that survives them are decided together, so this cannot
+        // reconcile against the previous snapshot's list or store a selection before reconciling it.
+        val authors = reconcileAuthorFilter(snapshot, filter)
+        candidates = authors.candidates
+        filter = authors.filter
         rebuildTree()
 
         if (snapshot.isSpectraProject) showView(treeView) else showMessage(EMPTY_STATE_TEXT)
@@ -153,7 +168,7 @@ class SpectraChangesPanel(private val project: Project) :
         val toExpand = if (loadedOnce) collectExpandedIds(tree) else setOf(ChangeGroup.ACTIVE.name)
         loadedOnce = true
 
-        tree.model = buildTreeModel(applyView(snapshot, order, filter), filter.isNotEmpty())
+        tree.model = buildTreeModel(applyView(snapshot, order, filter), filter.isActive)
         restoreExpandedIds(tree, toExpand)
     }
 
@@ -320,7 +335,7 @@ class SpectraChangesPanel(private val project: Project) :
             templatePresentation.icon = AllIcons.ObjectBrowser.Sorted
             ChangeOrder.entries.forEach { add(SortAction(it)) }
         }
-        val actions = DefaultActionGroup(RefreshAction(), sortGroup)
+        val actions = DefaultActionGroup(RefreshAction(), sortGroup, AuthorFilterGroup())
         val toolbar = ActionManager.getInstance().createActionToolbar(TOOLBAR_PLACE, actions, true)
         toolbar.targetComponent = this
 
@@ -337,8 +352,8 @@ class SpectraChangesPanel(private val project: Project) :
         field.addDocumentListener(object : DocumentAdapter() {
             override fun textChanged(e: DocumentEvent) {
                 val text = field.text
-                if (text == filter) return
-                filter = text
+                if (text == filter.text) return
+                filter = filter.copy(text = text)
                 rebuildTree()
             }
         })
@@ -429,6 +444,65 @@ class SpectraChangesPanel(private val project: Project) :
         override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
     }
 
+    /**
+     * The author filter, as a popup of independently checkable entries rather than a combo box: the
+     * tool window is narrow enough that a second field would crush the search box, and a checkable
+     * action reports its own state instead of needing a component model kept in sync with the
+     * selection as the candidate list changes underneath it.
+     *
+     * The children are rebuilt on every open because the candidate list follows the snapshot.
+     */
+    private inner class AuthorFilterGroup : ActionGroup(AUTHOR_FILTER_TEXT, true), DumbAware {
+        init {
+            templatePresentation.icon = AllIcons.General.User
+            isPopup = true
+        }
+
+        override fun getChildren(e: AnActionEvent?): Array<AnAction> =
+            (candidates.authors.map { NamedAuthorAction(it) } +
+                if (candidates.hasUnknown) listOf(UnknownAuthorAction()) else emptyList())
+                .toTypedArray()
+
+        override fun update(e: AnActionEvent) {
+            e.presentation.isEnabled = candidates.isUsable
+        }
+
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+    }
+
+    /**
+     * One proposer, checkable on its own: several may be checked at once and they widen the result
+     * together. Carries the name rather than a menu label, so a proposer who happens to be called
+     * "Unknown" toggles their own changes and not the unknown-proposer entry.
+     */
+    private inner class NamedAuthorAction(private val author: String) :
+        ToggleAction(author), DumbAware {
+
+        override fun isSelected(e: AnActionEvent): Boolean = author in filter.authors
+
+        override fun setSelected(e: AnActionEvent, state: Boolean) {
+            val authors = if (state) filter.authors + author else filter.authors - author
+            filter = filter.copy(authors = authors)
+            rebuildTree()
+        }
+
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+    }
+
+    /** The changes with no proposer at all — offered only while the snapshot holds one. */
+    private inner class UnknownAuthorAction :
+        ToggleAction(AuthorCandidates.UNKNOWN_LABEL), DumbAware {
+
+        override fun isSelected(e: AnActionEvent): Boolean = filter.includeUnknownAuthor
+
+        override fun setSelected(e: AnActionEvent, state: Boolean) {
+            filter = filter.copy(includeUnknownAuthor = state)
+            rebuildTree()
+        }
+
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+    }
+
     /** Radio-style: the three orders are mutually exclusive and the active one carries the check. */
     private inner class SortAction(private val target: ChangeOrder) :
         ToggleAction(target.displayName), DumbAware {
@@ -478,5 +552,6 @@ class SpectraChangesPanel(private val project: Project) :
         const val SCAN_FAILED_TEXT = "Scanning Spectra changes failed — see the IDE log for details."
         const val NO_PROJECT_DIR_TEXT = "Spectra could not determine this project's directory."
         const val FILTER_HINT_TEXT = "Filter by name"
+        const val AUTHOR_FILTER_TEXT = "Filter by Author"
     }
 }

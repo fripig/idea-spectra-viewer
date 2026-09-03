@@ -1,5 +1,6 @@
 package com.github.fripig.spectraviewer.toolwindow
 
+import com.github.fripig.spectraviewer.model.ChangeFilter
 import com.github.fripig.spectraviewer.model.ChangeGroup
 import com.github.fripig.spectraviewer.model.ChangeOrder
 import com.github.fripig.spectraviewer.model.SpectraChange
@@ -24,10 +25,10 @@ data class GroupView(val group: ChangeGroup, val changes: List<SpectraChange>, v
  * Turns a snapshot into what the tree shows. Pure — no file system access — so it is safe on the
  * EDT and a change of order or filter costs a rebuild rather than a rescan.
  *
- * An empty [filter] means "no filter": everything is shown. Treating it as a substring that nothing
- * contains would empty the tree the moment the user cleared the search box.
+ * [filter] answers both "does this change survive" and "is anything being filtered" itself, so the
+ * caller never reconstructs either rule and the two can never disagree.
  */
-fun applyView(snapshot: SpectraSnapshot, order: ChangeOrder, filter: String): List<GroupView> =
+fun applyView(snapshot: SpectraSnapshot, order: ChangeOrder, filter: ChangeFilter): List<GroupView> =
     ChangeGroup.entries.map { group ->
         val all = snapshot[group]
         GroupView(
@@ -37,9 +38,9 @@ fun applyView(snapshot: SpectraSnapshot, order: ChangeOrder, filter: String): Li
         )
     }
 
-/** Matches on the change name only; artifact paths never make their change match. */
-fun filterChanges(changes: List<SpectraChange>, filter: String): List<SpectraChange> =
-    if (filter.isEmpty()) changes else changes.filter { it.name.contains(filter, ignoreCase = true) }
+/** Artifact paths never make their change match; the whole rule lives in [ChangeFilter.matches]. */
+fun filterChanges(changes: List<SpectraChange>, filter: ChangeFilter): List<SpectraChange> =
+    changes.filter(filter::matches)
 
 /**
  * Orders changes for display. The scan leaves them unordered, so ordering costs no disk access and
