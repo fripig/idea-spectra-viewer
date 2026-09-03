@@ -16,7 +16,7 @@
     ]]></description>
 
     <change-notes><![CDATA[
-        <h4>0.5.2</h4>
+        <h4>0.5.3</h4>
         <ul>
             <li>Filter changes by author: a new toolbar popup lists every proposer found across the Active, Parked and Archived groups, and you can tick any number of them at once. Changes whose proposer is not among the ticked authors are hidden from all three groups, while each group header keeps showing how many changes it holds in total, so a filtered-out change is never mistaken for a missing one.</li>
             <li>The author filter combines with the existing text filter, so you can narrow the tree down to, say, your own changes whose name contains a keyword. A Refresh keeps the authors you had ticked as long as they still appear in the rescanned changes.</li>
