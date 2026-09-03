@@ -18,11 +18,11 @@
 
 ## 4. UI 接線
 
-- [ ] 4.1 在 `SpectraChangesPanel` 的 toolbar 加入作者過濾 popup：沿用既有 `SortAction` 的模式，以 `DefaultActionGroup` 搭配每位候選作者一個 `ToggleAction`，按鈕文字為 `Filter by Author`、未知作者項目文字為 `Unknown`。此步驟落實設計決策「以獨立的複選 popup 呈現作者過濾，而非擴充名稱輸入框」與「使用 toolbar 的 popup action group 而非 Swing 下拉元件」，並依「不在候選項目上顯示 change 筆數」的決策，項目文字只呈現作者名稱、不附加任何數字。驗證：在 IDE 沙箱（`./gradlew runIde`）中手動確認按鈕出現在排序按鈕旁、展開後可複選、名稱輸入框版面未被壓縮。
-- [ ] 4.2 將勾選狀態接上 `ChangeFilter` 與 `rebuildTree()`，使勾選變更只從記憶體中的 snapshot 重建樹、不觸發磁碟掃描，且樹的展開狀態、排序與名稱過濾文字均保留。驗證：在沙箱中勾選作者後確認樹即時更新、群組計數顯示 `matched/total`、且展開的節點維持展開。
-- [ ] 4.3 將 Refresh 流程接上 3.2 的交集函式與 3.3 的停用判斷，使重新掃描後已消失的作者自動取消勾選、候選少於兩項時按鈕呈現停用。驗證：在沙箱中勾選某作者後，手動將該 change 移出 `openspec/changes/` 並按下 Refresh，確認該候選項目消失、勾選解除、樹不會變成全空。
+- [x] 4.1 在 `SpectraChangesPanel` 的 toolbar 加入作者過濾 popup：沿用既有 `SortAction` 的模式，以 `DefaultActionGroup` 搭配每位候選作者一個 `ToggleAction`，按鈕文字為 `Filter by Author`、未知作者項目文字為 `Unknown`。此步驟落實設計決策「以獨立的複選 popup 呈現作者過濾，而非擴充名稱輸入框」與「使用 toolbar 的 popup action group 而非 Swing 下拉元件」，並依「不在候選項目上顯示 change 筆數」的決策，項目文字只呈現作者名稱、不附加任何數字。驗證：在 IDE 沙箱（`./gradlew runIde`）中手動確認按鈕出現在排序按鈕旁、展開後可複選、名稱輸入框版面未被壓縮。
+- [x] 4.2 將勾選狀態接上 `ChangeFilter` 與 `rebuildTree()`，使勾選變更只從記憶體中的 snapshot 重建樹、不觸發磁碟掃描，且樹的展開狀態、排序與名稱過濾文字均保留。驗證：在沙箱中勾選作者後確認樹即時更新、群組計數顯示 `matched/total`、且展開的節點維持展開。
+- [x] 4.3 先寫失敗測試再實作設計決策「將快照到過濾條件的調和抽成純函式，讓接線層只剩指派」：一個吃 `SpectraSnapshot` 與目前 `ChangeFilter`、回傳新候選清單與調和後 `ChangeFilter` 的純函式，使掃描完成後的順序邏輯（先算候選、再以新候選調和選取）可在無 IDE fixture 的情況下驗證；`SpectraChangesPanel` 的掃描回呼改為呼叫它並指派兩個欄位，Refresh 後已消失的作者自動取消勾選、候選少於兩項時按鈕停用的判斷一併由此函式的輸出驅動。驗證：測試涵蓋「作者仍在則保留勾選」「作者已消失則解除勾選且候選清單不再包含他」「未知作者候選消失時 `includeUnknownAuthor` 轉為 false」三種情況，`./gradlew test` 通過。
 
 ## 5. 收尾驗證
 
-- [ ] 5.1 確認「Show the proposer on change nodes」需求的既有行為未被破壞：提案者仍顯示在名稱與進度之間、不參與排序、不進入複製內容，且既有測試 `the filter does not match the proposer` 的斷言未被修改（僅隨 1.2 調整呼叫簽章）。驗證：`./gradlew test` 中該測試通過，並以 git diff 檢視確認該測試的斷言內容無異動。
-- [ ] 5.2 執行完整建置與 plugin 驗證，確認變更未破壞打包流程。驗證：`./gradlew build verifyPlugin` 成功結束且無新增警告。
+- [x] 5.1 確認「Show the proposer on change nodes」需求的既有行為未被破壞：提案者仍顯示在名稱與進度之間、不參與排序、不進入複製內容，且既有測試 `the filter does not match the proposer` 的斷言未被修改（僅隨 1.2 調整呼叫簽章）。驗證：`./gradlew test` 中該測試通過，並以 git diff 檢視確認該測試的斷言內容無異動。
+- [x] 5.2 執行完整建置與 plugin 驗證，確認變更未破壞打包流程。驗證：`./gradlew build verifyPlugin` 成功結束且無新增警告。

@@ -32,7 +32,9 @@ Spectra Changes tool window 已經在每個 change 節點上顯示提案者（pr
 - Affected code:
   - New:
     - src/main/kotlin/com/github/fripig/spectraviewer/model/ChangeFilter.kt
+    - src/main/kotlin/com/github/fripig/spectraviewer/model/AuthorCandidates.kt
     - src/test/kotlin/com/github/fripig/spectraviewer/model/ChangeFilterTest.kt
+    - src/test/kotlin/com/github/fripig/spectraviewer/model/AuthorCandidatesTest.kt
   - Modified:
     - src/main/kotlin/com/github/fripig/spectraviewer/toolwindow/ChangeTreeNodes.kt
     - src/main/kotlin/com/github/fripig/spectraviewer/toolwindow/SpectraChangesPanel.kt

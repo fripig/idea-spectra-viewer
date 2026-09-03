@@ -122,4 +122,46 @@ class AuthorCandidatesTest {
             "a named author and the unknown candidate are two things to choose between",
         )
     }
+
+    // ---- Requirement: Filter changes by author (reading a new snapshot) ----
+    // Candidates and the surviving selection are produced together so that neither the order of
+    // the two steps nor the list the selection is reconciled against can be got wrong at the call
+    // site: reconciling against the previous snapshot's candidates would keep a vanished author
+    // selected, and hide every change behind a control that no longer offers it.
+
+    private fun proposedBy(vararg proposers: String?) =
+        SpectraSnapshot(
+            active = proposers.mapIndexed { i, by -> change("change-$i", createdBy = by) },
+            parked = emptyList(),
+            archived = emptyList(),
+            isSpectraProject = true,
+        )
+
+    @Test
+    fun `an author the new snapshot still holds keeps their selection`() {
+        val state = reconcileAuthorFilter(proposedBy("alice", "bob"), ChangeFilter(authors = setOf("alice")))
+
+        assertEquals(listOf("alice", "bob"), state.candidates.authors)
+        assertEquals(setOf("alice"), state.filter.authors)
+    }
+
+    @Test
+    fun `an author the new snapshot has lost is dropped from both the list and the selection`() {
+        val state = reconcileAuthorFilter(proposedBy("alice"), ChangeFilter(authors = setOf("alice", "bob")))
+
+        assertEquals(listOf("alice"), state.candidates.authors, "bob is no longer offered")
+        assertEquals(setOf("alice"), state.filter.authors, "and so cannot stay selected")
+    }
+
+    @Test
+    fun `the unknown selection is dropped once every change has a proposer`() {
+        val state = reconcileAuthorFilter(
+            proposedBy("alice", "bob"),
+            ChangeFilter(text = "add", includeUnknownAuthor = true),
+        )
+
+        assertFalse(state.candidates.hasUnknown)
+        assertFalse(state.filter.includeUnknownAuthor)
+        assertEquals("add", state.filter.text, "the text box is not touched by a rescan")
+    }
 }

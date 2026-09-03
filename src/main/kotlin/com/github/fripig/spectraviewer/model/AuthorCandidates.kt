@@ -41,3 +41,22 @@ fun authorCandidates(snapshot: SpectraSnapshot): AuthorCandidates {
         hasUnknown = all.any { it.createdBy == null },
     )
 }
+
+/**
+ * What one snapshot means for the author filter: the candidates to offer, and the selection as it
+ * survives them.
+ */
+data class AuthorFilterState(val candidates: AuthorCandidates, val filter: ChangeFilter)
+
+/**
+ * Reads a new [snapshot] into [filter]: the candidates first, then the selection reconciled against
+ * those very candidates.
+ *
+ * Both come back together because the order is the whole risk. Reconciling against the previous
+ * snapshot's candidates would leave an author selected who is no longer offered, and the user would
+ * face a tree emptied by a control that no longer shows what emptied it.
+ */
+fun reconcileAuthorFilter(snapshot: SpectraSnapshot, filter: ChangeFilter): AuthorFilterState {
+    val candidates = authorCandidates(snapshot)
+    return AuthorFilterState(candidates = candidates, filter = filter.reconciledWith(candidates))
+}

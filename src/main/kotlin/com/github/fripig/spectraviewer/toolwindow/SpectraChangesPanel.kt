@@ -7,7 +7,7 @@ import com.github.fripig.spectraviewer.model.ChangeGroup
 import com.github.fripig.spectraviewer.model.ChangeFilter
 import com.github.fripig.spectraviewer.model.ChangeOrder
 import com.github.fripig.spectraviewer.model.SpectraSnapshot
-import com.github.fripig.spectraviewer.model.authorCandidates
+import com.github.fripig.spectraviewer.model.reconcileAuthorFilter
 import com.intellij.icons.AllIcons
 import com.intellij.ide.CopyProvider
 import com.intellij.notification.NotificationGroupManager
@@ -150,10 +150,11 @@ class SpectraChangesPanel(private val project: Project) :
         }
 
         lastSnapshot = snapshot
-        candidates = authorCandidates(snapshot)
-        // A selection whose candidate has vanished would hide changes from a control no longer on
-        // screen, leaving the user with an empty tree and nothing to undo it with.
-        filter = filter.reconciledWith(candidates)
+        // Candidates and the selection that survives them are decided together, so this cannot
+        // reconcile against the previous snapshot's list or store a selection before reconciling it.
+        val authors = reconcileAuthorFilter(snapshot, filter)
+        candidates = authors.candidates
+        filter = authors.filter
         rebuildTree()
 
         if (snapshot.isSpectraProject) showView(treeView) else showMessage(EMPTY_STATE_TEXT)
