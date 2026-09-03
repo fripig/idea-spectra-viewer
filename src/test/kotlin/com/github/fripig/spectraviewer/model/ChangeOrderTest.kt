@@ -203,6 +203,28 @@ class ChangeOrderTest {
     }
 
     @Test
+    fun `a group filtered by author alone still shows matched of total`() {
+        val byAuthor = SpectraSnapshot(
+            active = listOf(
+                change("add-dark-mode", createdBy = "alice"),
+                change("fix-login", createdBy = "bob"),
+                change("tidy-logs", createdBy = "carol"),
+            ),
+            parked = emptyList(),
+            archived = emptyList(),
+            isSpectraProject = true,
+        )
+        val filter = ChangeFilter(authors = setOf("alice"))
+        val view = applyView(byAuthor, ChangeOrder.NAME, filter).first()
+
+        assertEquals(
+            "1/3",
+            groupCountText(GroupNode(view, filtering = filter.isActive)),
+            "an author selection hides changes too, so the row must say how many it hid",
+        )
+    }
+
+    @Test
     fun `a group where everything matches still shows both numbers while filtering`() {
         val views = applyView(snapshot(), ChangeOrder.NAME, ChangeFilter(text = "e")).associateBy { it.group }
 
@@ -223,6 +245,7 @@ class ChangeOrderTest {
             created: LocalDate? = null,
             modified: Instant? = null,
             group: ChangeGroup = ChangeGroup.ACTIVE,
+            createdBy: String? = null,
         ) = SpectraChange(
             name = name,
             group = group,
@@ -231,7 +254,7 @@ class ChangeOrderTest {
             progress = null,
             created = created,
             modified = modified,
-            createdBy = null,
+            createdBy = createdBy,
         )
     }
 }

@@ -20,10 +20,10 @@ data class ChangeFilter(
      * Whether this filter hides anything. Group rows switch from a single total to matched-of-total
      * on this, so it must answer for every dimension the filter has — not just the text box.
      */
-    val isActive: Boolean get() = text.isNotEmpty()
+    val isActive: Boolean get() = text.isNotEmpty() || authors.isNotEmpty() || includeUnknownAuthor
 
-    /** Whether [change] survives this filter. */
-    fun matches(change: SpectraChange): Boolean = matchesText(change)
+    /** Whether [change] survives this filter. The two dimensions are combined as a conjunction. */
+    fun matches(change: SpectraChange): Boolean = matchesText(change) && matchesAuthor(change)
 
     /**
      * Empty text means "no text filter", not "a substring nothing contains": the latter would empty
@@ -31,6 +31,17 @@ data class ChangeFilter(
      */
     private fun matchesText(change: SpectraChange): Boolean =
         text.isEmpty() || change.name.contains(text, ignoreCase = true)
+
+    /**
+     * Selecting nothing means "no author filter", for the same reason empty text does. Selected
+     * authors are compared exactly: they were picked from a list built out of these very strings,
+     * so a loose comparison could only ever fold two candidates the user can tell apart.
+     */
+    private fun matchesAuthor(change: SpectraChange): Boolean {
+        if (authors.isEmpty() && !includeUnknownAuthor) return true
+        val proposer = change.createdBy ?: return includeUnknownAuthor
+        return proposer in authors
+    }
 
     companion object {
         /** Filters nothing: every change survives and group rows show a plain total. */

@@ -5,10 +5,10 @@
 
 ## 2. 作者比對核心（TDD）
 
-- [ ] 2.1 先寫失敗測試，覆蓋「Filter changes by author」需求的比對規則：未選任何作者時不限縮結果；選取單一作者時只留下該作者的 change；選取多位作者時為 OR；選取未知作者候選時只留下 `createdBy` 為 null 的 change。驗證：`./gradlew test` 出現預期的紅燈，且失敗訊息指向作者比對而非既有行為。
-- [ ] 2.2 在 `ChangeFilter` 中實作上述作者比對，使 2.1 的測試轉綠，且 1.x 的既有測試維持通過。驗證：`./gradlew test` 全綠。
-- [ ] 2.3 補上名稱過濾與作者過濾同時生效時為 AND 的測試與實作，並以 delta spec 中「combinations of filter text and author selection」表格的六組輸入作為案例。驗證：對應的參數化或逐項測試在 `./gradlew test` 中通過。
-- [ ] 2.4 讓「Display changes as a grouped tree」需求的群組計數在僅作者過濾生效時也顯示 `matched/total`：`ChangeFilter` 回報的過濾狀態改為「名稱過濾非空或有選取作者」。驗證：新增測試斷言在空名稱過濾加一位選取作者的情況下 `groupCountText` 回傳 `1/3`，且既有的無過濾（`3`）與名稱過濾（`1/3`）案例維持不變。
+- [x] 2.1 先寫失敗測試，覆蓋「Filter changes by author」需求的比對規則：未選任何作者時不限縮結果；選取單一作者時只留下該作者的 change；選取多位作者時為 OR；選取未知作者候選時只留下 `createdBy` 為 null 的 change。驗證：`./gradlew test` 出現預期的紅燈，且失敗訊息指向作者比對而非既有行為。
+- [x] 2.2 在 `ChangeFilter` 中實作上述作者比對，使 2.1 的測試轉綠，且 1.x 的既有測試維持通過。驗證：`./gradlew test` 全綠。
+- [x] 2.3 補上名稱過濾與作者過濾同時生效時為 AND 的測試與實作，並以 delta spec 中「combinations of filter text and author selection」表格的六組輸入作為案例。驗證：對應的參數化或逐項測試在 `./gradlew test` 中通過。
+- [x] 2.4 讓「Display changes as a grouped tree」需求的群組計數在僅作者過濾生效時也顯示 `matched/total`：`ChangeFilter` 回報的過濾狀態改為「名稱過濾非空或有選取作者」。驗證：新增測試斷言在空名稱過濾加一位選取作者的情況下 `groupCountText` 回傳 `1/3`，且既有的無過濾（`3`）與名稱過濾（`1/3`）案例維持不變。
 
 ## 3. 候選作者清單與選取狀態（TDD）
 
