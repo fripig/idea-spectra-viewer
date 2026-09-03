@@ -3,6 +3,7 @@ package com.github.fripig.spectraviewer.toolwindow
 import com.github.fripig.spectraviewer.discovery.ChangeScanner
 import com.github.fripig.spectraviewer.terminal.TerminalCommandSender
 import com.github.fripig.spectraviewer.model.ChangeGroup
+import com.github.fripig.spectraviewer.model.ChangeFilter
 import com.github.fripig.spectraviewer.model.ChangeOrder
 import com.github.fripig.spectraviewer.model.SpectraSnapshot
 import com.intellij.icons.AllIcons
@@ -70,7 +71,7 @@ class SpectraChangesPanel(private val project: Project) :
      */
     private var lastSnapshot: SpectraSnapshot? = null
     private var order = ChangeOrder.DEFAULT
-    private var filter = ""
+    private var filter = ChangeFilter.NONE
 
     /**
      * Only the newest scan may touch the tree: a slow scan that lost a race with a later Refresh
@@ -153,7 +154,7 @@ class SpectraChangesPanel(private val project: Project) :
         val toExpand = if (loadedOnce) collectExpandedIds(tree) else setOf(ChangeGroup.ACTIVE.name)
         loadedOnce = true
 
-        tree.model = buildTreeModel(applyView(snapshot, order, filter), filter.isNotEmpty())
+        tree.model = buildTreeModel(applyView(snapshot, order, filter), filter.isActive)
         restoreExpandedIds(tree, toExpand)
     }
 
@@ -337,8 +338,8 @@ class SpectraChangesPanel(private val project: Project) :
         field.addDocumentListener(object : DocumentAdapter() {
             override fun textChanged(e: DocumentEvent) {
                 val text = field.text
-                if (text == filter) return
-                filter = text
+                if (text == filter.text) return
+                filter = filter.copy(text = text)
                 rebuildTree()
             }
         })

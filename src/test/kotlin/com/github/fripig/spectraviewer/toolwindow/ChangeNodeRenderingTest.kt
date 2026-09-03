@@ -1,5 +1,6 @@
 package com.github.fripig.spectraviewer.toolwindow
 
+import com.github.fripig.spectraviewer.model.ChangeFilter
 import com.github.fripig.spectraviewer.model.ChangeGroup
 import com.github.fripig.spectraviewer.model.ChangeOrder
 import com.github.fripig.spectraviewer.model.SpectraChange
@@ -80,10 +81,10 @@ class ChangeNodeRenderingTest {
 
         assertEquals(
             emptyList<SpectraChange>(),
-            filterChanges(changes, "fripig"),
+            filterChanges(changes, ChangeFilter(text = "fripig")),
             "the filter matches change names only",
         )
-        assertEquals(changes, filterChanges(changes, "dark"), "the name still matches")
+        assertEquals(changes, filterChanges(changes, ChangeFilter(text = "dark")), "the name still matches")
     }
 
     @Test
