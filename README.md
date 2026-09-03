@@ -13,6 +13,8 @@ Spectra moves parked changes out of `openspec/changes/` into the git directory, 
 
 The plugin reads files directly. It **does not require the Spectra app to be running**, and it never touches Spectra's internal database.
 
+![The Spectra tool window listing Active, Parked and Archived changes](docs/screenshots/01-tool-window.png)
+
 > **Unofficial project**: This is a community-built third-party plugin. It is not affiliated with, nor endorsed by, Spectra. All Spectra-related names belong to their respective owners.
 
 ## Features
@@ -29,6 +31,24 @@ The plugin reads files directly. It **does not require the Spectra app to be run
 - **Git worktree support**: When `.git` is a file, the real git directory is resolved via `gitdir:` and `commondir`, and parked changes are located from there.
 
 Sorting and filtering only rebuild the tree — they never re-scan the file system. Scanning itself always runs on a background thread and never blocks the EDT.
+
+## Screenshots
+
+**Send a command to your terminal**
+
+![Send a command to your terminal](docs/screenshots/02-send-to-terminal-menu.png)
+
+**The command lands at the prompt, ready for you to press Enter**
+
+![The command lands at the prompt, ready for you to press Enter](docs/screenshots/03-command-in-terminal.png)
+
+**Filter by author**
+
+![Filter by author](docs/screenshots/04-filter-by-author.png)
+
+**Filter by name, combined with the author filter**
+
+![Filter by name, combined with the author filter](docs/screenshots/05-filter-by-name.png)
 
 ## Installation
 

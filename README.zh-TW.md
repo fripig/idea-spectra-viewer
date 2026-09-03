@@ -13,6 +13,8 @@ Spectra 會把 park 起來的 change 從 `openspec/changes/` 移到 git 目錄�
 
 Plugin 直接讀檔案，**不需開啟 Spectra app**，也不會去碰 Spectra 的內部資料庫。
 
+![Spectra tool window 並列顯示 Active、Parked、Archived 三組 change](docs/screenshots/01-tool-window.png)
+
 > **非官方專案**：這是由社群開發的第三方 plugin，與 Spectra 官方沒有隸屬關係，也未經其背書。Spectra 相關名稱屬於各自的擁有者。
 
 ## 功能
@@ -29,6 +31,24 @@ Plugin 直接讀檔案，**不需開啟 Spectra app**，也不會去碰 Spectra 
 - **Git worktree 支援**：`.git` 是檔案時會依 `gitdir:` 與 `commondir` 解析出真正的 git 目錄，再從中尋找 parked changes。
 
 排序與篩選都只重建樹，不會重新掃描檔案系統；掃描本身一律在背景執行緒進行，不阻塞 EDT。
+
+## 截圖
+
+**把指令送進終端機**
+
+![把指令送進終端機](docs/screenshots/02-send-to-terminal-menu.png)
+
+**指令會停在提示列，由你自己按 Enter**
+
+![指令會停在提示列，由你自己按 Enter](docs/screenshots/03-command-in-terminal.png)
+
+**依作者篩選**
+
+![依作者篩選](docs/screenshots/04-filter-by-author.png)
+
+**依名稱篩選，可與作者篩選疊加**
+
+![依名稱篩選，可與作者篩選疊加](docs/screenshots/05-filter-by-name.png)
 
 ## 安裝
 
