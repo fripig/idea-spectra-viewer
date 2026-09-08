@@ -50,6 +50,8 @@ Sorting and filtering only rebuild the tree — they never re-scan the file syst
 
 ![Filter by name, combined with the author filter](docs/screenshots/05-filter-by-name.png)
 
+The screenshots are re-taken with the tooling described in [tools/README.md](tools/README.md).
+
 ## Installation
 
 In your IDE choose **Settings → Plugins → Marketplace**, search for **Spectra Viewer**, and install it — or install it straight from [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/33519).

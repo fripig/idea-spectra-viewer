@@ -50,6 +50,8 @@ Plugin 直接讀檔案，**不需開啟 Spectra app**，也不會去碰 Spectra 
 
 ![依名稱篩選，可與作者篩選疊加](docs/screenshots/05-filter-by-name.png)
 
+截圖由 [tools/README.md](tools/README.md) 說明的工具自動重拍。
+
 ## 安裝
 
 在 IDE 中選 **Settings → Plugins → Marketplace**，搜尋 **Spectra Viewer** 即可安裝；也可以直接到 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/33519) 安裝。
