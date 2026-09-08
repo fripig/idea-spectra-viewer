@@ -22,3 +22,8 @@ out/
 
 # macOS
 .DS_Store
+
+# Screenshot tooling build output (tools/screenshots/README.md)
+tools/screenshots/out/
+tools/screenshots/native/winid
+tools/screenshots/native/*.class
