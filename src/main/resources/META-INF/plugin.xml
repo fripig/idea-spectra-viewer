@@ -16,6 +16,10 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <h4>0.6.1</h4>
+        <ul>
+            <li>New plugin icon and tool window icons using the official Spectra logo, with dedicated 20px variants for the new UI. Contributed by <a href="https://github.com/shengyou">shengyou</a>.</li>
+        </ul>
         <h4>0.6.0</h4>
         <ul>
             <li>The <b>Send to Terminal</b> / <b>Copy Command</b> menu now also offers <code>/spectra-discuss</code>, and lists its commands in the order of the Spectra workflow: discuss, apply, ingest, archive, then commit.</li>
