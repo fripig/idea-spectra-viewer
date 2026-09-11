@@ -20,8 +20,10 @@ object ChangeScanner {
 
     private val LOG = Logger.getInstance(ChangeScanner::class.java)
 
-    /** The three source paths are pinned here so a future Spectra layout change has one landing spot. */
-    private const val OPENSPEC_DIR = "openspec"
+    /**
+     * The source paths below the spec directory are pinned here; where the spec directory itself
+     * lives is [SpecDirResolver]'s decision, so a future Spectra layout change has one landing spot.
+     */
     private const val CHANGES_DIR = "changes"
     private const val ARCHIVE_DIR = "archive"
     private const val PARKED_ROOT_DIR = "spectra-app"
@@ -32,10 +34,10 @@ object ChangeScanner {
         projectRoot: Path,
         warn: (String, Throwable?) -> Unit = { message, t -> LOG.warn(message, t) },
     ): SpectraSnapshot {
-        val openspecDir = projectRoot.resolve(OPENSPEC_DIR)
-        if (!Files.isDirectory(openspecDir)) return SpectraSnapshot.NOT_A_SPECTRA_PROJECT
+        val specDir = SpecDirResolver.resolve(projectRoot, warn)
+        if (!Files.isDirectory(specDir)) return SpectraSnapshot.NOT_A_SPECTRA_PROJECT
 
-        val changesDir = openspecDir.resolve(CHANGES_DIR)
+        val changesDir = specDir.resolve(CHANGES_DIR)
         val parkedDir = resolveGitDir(projectRoot)?.resolve(PARKED_ROOT_DIR)?.resolve(CHANGES_DIR)
 
         return SpectraSnapshot(

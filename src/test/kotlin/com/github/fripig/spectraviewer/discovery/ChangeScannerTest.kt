@@ -107,6 +107,54 @@ class ChangeScannerTest {
         assertEquals(listOf("add-search"), names(scan(root).active))
     }
 
+    // ---- Requirement: scan changes from all three Spectra sources (configured spec directory) ----
+
+    @Test
+    fun `a configured spec directory supplies the active and archived changes`(@TempDir root: Path) {
+        Files.writeString(root.resolve(".spectra.yaml"), "spec_dir: docs/spectra\n")
+        createChange(root.resolve("docs/spectra/changes/add-search"))
+        createChange(root.resolve("docs/spectra/changes/archive/old-login"))
+        createChange(root.resolve(".git/spectra-app/changes/dark-mode"))
+
+        val warnings = mutableListOf<String>()
+        val snapshot = ChangeScanner.scan(root) { message, _ -> warnings += message }
+
+        assertEquals(listOf("add-search"), names(snapshot.active), "Active group")
+        assertEquals(listOf("dark-mode"), names(snapshot.parked), "Parked group")
+        assertEquals(listOf("old-login"), names(snapshot.archived), "Archived group")
+        assertTrue(snapshot.isSpectraProject, "docs/spectra/ exists, so this is a Spectra project")
+        assertEquals(emptyList<String>(), warnings, "a usable configuration must not warn")
+        assertSamePath(root.resolve("docs/spectra/changes/add-search"), snapshot.active.single().directory)
+        assertSamePath(root.resolve("docs/spectra/changes/archive/old-login"), snapshot.archived.single().directory)
+    }
+
+    @Test
+    fun `changes under openspec are ignored when another spec directory is configured`(@TempDir root: Path) {
+        Files.writeString(root.resolve(".spectra.yaml"), "spec_dir: docs/spectra\n")
+        createChange(root.resolve("docs/spectra/changes/add-search"))
+        createChange(root.resolve("openspec/changes/stale-one"))
+
+        assertEquals(listOf("add-search"), names(scan(root).active))
+    }
+
+    @Test
+    fun `an unusable spec_dir falls back to the openspec layout and still returns every group`(@TempDir root: Path) {
+        Files.writeString(root.resolve(".spectra.yaml"), "spec_dir: ../outside\n")
+        createChange(root.resolve("openspec/changes/add-search"))
+        createChange(root.resolve("openspec/changes/archive/old-login"))
+        createChange(root.resolve(".git/spectra-app/changes/dark-mode"))
+
+        val warnings = mutableListOf<String>()
+        val snapshot = ChangeScanner.scan(root) { message, _ -> warnings += message }
+
+        assertTrue(snapshot.isSpectraProject)
+        assertEquals(listOf("add-search"), names(snapshot.active), "Active group")
+        assertEquals(listOf("dark-mode"), names(snapshot.parked), "Parked group")
+        assertEquals(listOf("old-login"), names(snapshot.archived), "Archived group")
+        assertEquals(1, warnings.size, "the unusable configuration is reported once, got: $warnings")
+        assertTrue(warnings.single().contains(".spectra.yaml"), "the warning names the file: ${warnings.single()}")
+    }
+
     // ---- Requirement: resolve the git directory including worktree indirection ----
 
     @Test
@@ -402,6 +450,21 @@ class ChangeScannerTest {
         Files.createDirectories(root.resolve("openspec"))
 
         assertTrue(scan(root).isSpectraProject)
+    }
+
+    @Test
+    fun `a configured spec directory alone marks the project as Spectra`(@TempDir root: Path) {
+        Files.writeString(root.resolve(".spectra.yaml"), "spec_dir: docs/spectra\n")
+        Files.createDirectories(root.resolve("docs/spectra"))
+
+        assertTrue(scan(root).isSpectraProject, "the resolved spec directory exists")
+    }
+
+    @Test
+    fun `a configured project whose spec directory is missing is not a Spectra project`(@TempDir root: Path) {
+        Files.writeString(root.resolve(".spectra.yaml"), "spec_dir: docs/spectra\n")
+
+        assertEquals(SpectraSnapshot.NOT_A_SPECTRA_PROJECT, scan(root), "neither docs/spectra/ nor openspec/ exists")
     }
 
     // ---- helpers ----
