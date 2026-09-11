@@ -16,6 +16,11 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <h4>0.6.2</h4>
+        <ul>
+            <li>Projects created with Spectra 3.0 and later are now recognised: the tool window reads <code>spec_dir</code> from the project's <code>.spectra.yaml</code> (for example <code>docs/spectra</code>) instead of assuming <code>openspec/</code>, so such projects no longer show "This project is not initialised for Spectra." Projects without the setting keep using <code>openspec/</code> as before.</li>
+            <li>An unusable <code>spec_dir</code> (empty, an absolute path, or pointing outside the project) falls back to <code>openspec/</code> and is reported in the IDE log.</li>
+        </ul>
         <h4>0.6.1</h4>
         <ul>
             <li>New plugin icon and tool window icons using the official Spectra logo, with dedicated 20px variants for the new UI. Contributed by <a href="https://github.com/shengyou">shengyou</a>.</li>
